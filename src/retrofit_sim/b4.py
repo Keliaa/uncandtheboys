@@ -65,7 +65,10 @@ PARAMS = {
     "crest_abs": 3.75,          # fleet prior: healthy crest factor ~3.2 (bearing damage / cavitation raise it)
     "rx_env": (0.0, 0.025),     # plausible calibration bias of measured / physics speed ratio - 1
     "hr_env": (-0.03, 0.03),
-    "single_ratio": 0.25,       # coupled channels must stay below this fraction of k for a single-channel sensor call
+    "single_ratio": 0.25,
+    "cal_inflate_min": 360,     # residual scale x sqrt(1 + 360 / calibration minutes): early fits are uncertain
+    "settle_min": {"bt": 90, "wt": 150, "tf": 20},   # thermal channels need time after a start to settle
+    "close_after_type": {"CAVITATION": 25, "AIR_ENTRAINMENT": 25},       # coupled channels must stay below this fraction of k for a single-channel sensor call
 }
 
 
@@ -138,6 +141,20 @@ def ewm(x: np.ndarray, span: float) -> np.ndarray:
     return out
 
 
+def ewm_seg(x: np.ndarray, span: float, reset: np.ndarray) -> np.ndarray:
+    """Causal EWMA over non-NaN values that restarts after every reset (e.g. a stop or lockout)."""
+    alpha = 2.0 / (span + 1.0)
+    out = np.full(len(x), np.nan)
+    s = np.nan
+    for j, v in enumerate(x):
+        if reset[j]:
+            s = np.nan
+        if not np.isnan(v):
+            s = v if np.isnan(s) else s + alpha * (v - s)
+        out[j] = s
+    return out
+
+
 def ffill_limit(x: np.ndarray, limit: int) -> np.ndarray:
     return pd.Series(x).ffill(limit=limit).values
 
@@ -202,6 +219,11 @@ def _design(f: pd.DataFrame, k: str, ctrl: str) -> np.ndarray:
         tf = ewm(f["ctx_tsup"].values, span)
         cols = [ones, uu, uu ** 2, amb, tf] if ctrl != "FIXED_SPEED" else [ones, amb, tf]
         return np.column_stack(cols)
+    lvl = f["ctx_lvl"].values
+    has_lvl = np.isfinite(lvl).mean() > 0.9
+    if k in ("ps", "pd") and has_lvl:
+        base = [ones] if ctrl == "FIXED_SPEED" else [ones, u, u ** 2, u ** 3]
+        return np.column_stack(base + [np.nan_to_num(lvl, nan=np.nanmedian(lvl))])
     if k == "tf":
         return np.column_stack([ones, ewm(f["ctx_tsup"].values, 3), u])
     if k in VIB:
@@ -256,13 +278,15 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
         hi_u = np.full(n, np.nan)
         ok = steady & ~np.isnan(x) & np.all(np.isfinite(X), axis=1)
         prev_end = 0
-        coef, sc, ulo, uhi = None, None, None, None
+        coef, sc, ulo, uhi, ncal = None, None, None, None, 1
+        ncal_arr = np.full(n, np.nan)
         for cp in checkpoints + [n]:
             # rows [prev_end, cp) use the fit made from data strictly before prev_end
             if coef is not None and prev_end < n:
                 seg = slice(prev_end, min(cp, n))
                 pred[seg] = X[seg] @ coef
                 scale[seg] = sc
+                ncal_arr[seg] = ncal
                 lo_u[seg], hi_u[seg] = ulo, uhi
             if cp >= n:
                 break
@@ -287,14 +311,17 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
                 sc = max(mad, floor)
                 uu = f["u"].values[sel]
                 ulo, uhi = np.nanmin(uu), np.nanmax(uu)
+                ncal = int(sel.sum()) * (5 if sparse else 1)
             prev_end = cp
         # extrapolation guard: inflate the scale when the operating point is outside the calibration range
         u = f["u"].values
         width = np.maximum(hi_u - lo_u, 0.05)
         out = np.maximum(lo_u - u, 0) + np.maximum(u - hi_u, 0)
-        scale_eff = scale * (1.0 + 4.0 * out / width)
+        scale_eff = scale * (1.0 + 4.0 * out / width) * np.sqrt(1.0 + P["cal_inflate_min"] / np.maximum(ncal_arr, 1.0))
         z = (x - pred) / scale_eff
         z[~f["run"].values] = np.nan
+        if k in P["settle_min"]:
+            z[f["since_start"].values < P["settle_min"][k]] = np.nan
         f["z_" + k] = z
         f["e_" + k] = x - pred          # residual in engineering units (for evidence text)
         f["x_" + k] = x
@@ -334,37 +361,55 @@ CLASS = {k: ("SENSOR" if k.startswith("SENSOR") or k == "COMMUNICATION_LOSS" els
 
 
 class Track:
-    """Episode tracker for one detector: pending diagnosis -> stable -> one alert; closes after quiet time."""
+    """Episode tracker for one detector.
+
+    While the detector is active it votes a fault type every minute. A type is alerted once it has been the vote for
+    `stable_min` consecutive minutes (or, if votes stay split, the majority type after `max_wait_min`). Each type has
+    its own sub-episode: it is alerted at most once until it has been absent for `close_after` minutes (shorter for
+    episodic faults such as cavitation), so a clog that escalates to cavitation, or repeated cavitation episodes,
+    each get their own alert, but a stable problem never re-alerts.
+    """
 
     def __init__(self, name, P):
         self.name = name
         self.P = P
         self.open = False
-        self.alerted_type = None
         self.last_active = -10 ** 9
         self.start = None
         self.votes = []
-        self.alert_j = None
+        self.type_last = {}        # type -> last minute voted
+        self.type_alerted = {}     # type -> True while its sub-episode is alerted and open
+        self.any_alert = False
+
+    def _close_after(self, ft):
+        return self.P["close_after_type"].get(ft, self.P["close_after_min"])
 
     def step(self, j, active, ftype):
         P = self.P
         emit = None
+        for ft in list(self.type_alerted):
+            if j - self.type_last.get(ft, -10 ** 9) > self._close_after(ft):
+                del self.type_alerted[ft]
         if active:
             if not self.open:
-                self.open, self.start, self.votes, self.alerted_type, self.alert_j = True, j, [], None, None
+                self.open, self.start, self.votes, self.any_alert = True, j, [], False
             self.last_active = j
             self.votes.append(ftype)
-            if self.alerted_type is None:
-                recent = self.votes[-P["stable_min"]:]
-                stable = len(recent) >= P["stable_min"] and len(set(recent)) == 1
-                waited = j - self.start >= P["max_wait_min"]
-                if stable or waited:
-                    if stable:
-                        emit = recent[-1]
-                    else:
-                        vals, cnt = np.unique(self.votes[-P["max_wait_min"]:], return_counts=True)
-                        emit = vals[np.argmax(cnt)]
-                    self.alerted_type, self.alert_j = emit, j
+            self.type_last[ftype] = j
+            recent = self.votes[-P["stable_min"]:]
+            stable = len(recent) >= P["stable_min"] and len(set(recent)) == 1
+            cand = None
+            if stable:
+                cand = recent[-1]
+            elif not self.any_alert and j - self.start >= P["max_wait_min"]:
+                vals, cnt = np.unique([v for v in self.votes[-P["max_wait_min"]:] if v is not None] or ["UNKNOWN"],
+                                      return_counts=True)
+                cand = vals[np.argmax(cnt)]
+            if cand is not None and cand not in self.type_alerted and not (cand == "UNKNOWN" and self.any_alert):
+                emit = cand
+                self.type_alerted[cand] = True
+                self.type_last[cand] = j
+                self.any_alert = True
         elif self.open and j - self.last_active > P["close_after_min"]:
             self.open = False
         return emit
@@ -392,8 +437,12 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                                          ACTIONS["COMMUNICATION_LOSS"])))
 
     Z = {k: f["z_" + k].values for k in channels}
-    ZF = {k: ewm(np.nan_to_num(Z[k], nan=0.0) * steady, 5) for k in channels}
-    ZS = {k: ewm(np.where(steady, Z[k], np.nan), P["slow_span"]) for k in channels}
+    reset = ~run
+    ZF = {k: ewm_seg(np.where(steady, Z[k], np.nan), 5, reset) for k in channels}
+    ZS = {k: ewm_seg(np.where(steady, Z[k], np.nan), P["slow_span"], reset) for k in channels}
+    ZF = {k: np.where(steady, np.nan_to_num(v), 0.0) for k, v in ZF.items()}
+    ZS = {k: np.where(steady, v, np.nan) for k, v in ZS.items()}
+    ES = {k: ewm_seg(np.where(steady, f["e_" + k].values, np.nan), 15, reset) for k in channels}
     act = {}
     for k in channels:
         fast = _persist(steady & (np.abs(ZF[k]) > P["k_fast"]), P["persist_fast"])
@@ -490,7 +539,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         return 0.0 if np.isnan(v) else float(v)
 
     crest = f[CH["c"] + "__mean"].values if CH["c"] + "__mean" in f else np.full(n, np.nan)
-    crest_s = ewm(np.where(run, crest, np.nan), 30) if not np.all(np.isnan(crest)) else np.full(n, np.nan)
+    crest_s = ewm_seg(np.where(steady, crest, np.nan), 30, reset) if not np.all(np.isnan(crest)) else np.full(n, np.nan)
     since_lock = f["since_lockout"].values
     hyd_ch = [c for c in HYD if c in channels]
     vib_ch = [c for c in VIB if c in channels]
@@ -517,7 +566,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             b_type = "BEARING_WEAR"
         e = trk_b.step(j, b_type is not None, b_type)
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.75, _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s),
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.75, _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))
         # velocity family: imbalance / misalignment (bearing late stage is attributed to the bearing track)
         v_up = "v" in active and zz.get("v", 0) > 0
@@ -528,7 +577,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             v_type = "MISALIGNMENT" if mis else "IMBALANCE"
         e = trk_v.step(j, v_type is not None, v_type)
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s),
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES),
                                          ACTIONS[e])))
         # hydraulic family
         h_type = None
@@ -536,7 +585,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             h_type = _hyd_diagnose(zz, a.control, f, j)
         e = trk_h.step(j, h_type is not None, h_type)
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s),
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))
     return _finalize(alerts, f, a)
 
@@ -630,11 +679,11 @@ def _hyd_diagnose(z: dict, ctrl: str, f: pd.DataFrame, j: int) -> str:
     return "UNKNOWN"
 
 
-def _evidence(f, j, keys, zz, crest_s) -> str:
+def _evidence(f, j, keys, zz, crest_s, ES=None) -> str:
     parts = []
-    for k in keys:
-        if k in zz and abs(zz[k]) >= 2.0:
-            e = f["e_" + k].values[j] if "e_" + k in f else np.nan
+    for k in sorted([k for k in keys if k in zz], key=lambda k: -abs(zz[k])):
+        if abs(zz[k]) >= 2.0:
+            e = ES[k][j] if ES is not None and k in ES else (f["e_" + k].values[j] if "e_" + k in f else np.nan)
             unit = "" if k in ("rx", "hr") else ""
             if k in ("rx", "hr"):
                 parts.append(f"{NAME[k]} {100 * e:+.1f}% (z={zz[k]:+.1f})")

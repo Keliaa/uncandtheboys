@@ -52,6 +52,14 @@ def score_splits(pred: pd.DataFrame, data=DATA, assets_subset=None) -> dict:
     return out
 
 
+def score_stress_dir(pred: pd.DataFrame, sdir: str) -> dict:
+    """Score predictions on a simulator-generated stress fleet (full private labels written by make_dataset.py)."""
+    assets = pd.read_csv(os.path.join(sdir, "public", "assets.csv"))
+    ev = pd.read_csv(os.path.join(sdir, "private", "events_stress_all.csv"))
+    bn = pd.read_csv(os.path.join(sdir, "public", "benign_windows_stress.csv"))
+    return score(pred, ev, assets, bn, "stress")
+
+
 def per_pump(pred: pd.DataFrame, data=DATA) -> pd.DataFrame:
     assets, ev, bn = load_labels(data)
     rows = []

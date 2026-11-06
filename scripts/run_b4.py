@@ -32,6 +32,7 @@ def main(argv=None):
     p.add_argument("--out", default=os.path.join(ROOT, "results"))
     p.add_argument("--final", action="store_true", help="also predict the test pumps with the frozen parameters")
     p.add_argument("--params", default=None, help="JSON file with parameter overrides")
+    p.add_argument("--stress", default="", help="comma-separated stress seeds in build/stress_<seed> to score as extra dev data")
     a = p.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     P = json.load(open(a.params)) if a.params else None
@@ -45,6 +46,18 @@ def main(argv=None):
     import eval as ev  # noqa: E402
     res = {"B4": ev.score_splits(pred, a.data)}
     print(ev.summary_table(res))
+    if a.stress:
+        rows = []
+        for sd in a.stress.split(","):
+            d = os.path.join(ROOT, "build", f"stress_{sd}")
+            assets = pd.read_csv(os.path.join(d, "public", "assets.csv"))
+            inp_s = b4.load_inputs(os.path.join(d, "public"), list(assets.asset_id))
+            ps = b4.run_b4(inp_s, P)
+            r = ev.score_stress_dir(ps, d)
+            rows.append({"seed": sd, **{k: r[m] for k, m, _ in ev.KEYS}, "events": r["events_scored"]})
+        st = pd.DataFrame(rows)
+        print(st.round(3).to_string(index=False))
+        print(f"stress mean composite {st.composite.mean():.1f}  type_rec {st.type_rec.mean():.3f}  recall {st.recall.mean():.3f}")
     if a.final:
         inp_t = b4.load_inputs(a.data, TEST_IDS)
         pt = b4.run_b4(inp_t, P)

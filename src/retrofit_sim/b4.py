@@ -103,6 +103,19 @@ def load_inputs(data_dir: str, asset_ids) -> dict:
     return {"assets": assets, "feat": feat, "ctx": ctx, "snaps": snaps}
 
 
+# --------------------------------------------------------------------------------------------- static channel info
+WIRELESS = ("v", "a", "c", "bt")
+
+
+def static_channels(a: pd.Series) -> tuple[set, set]:
+    """Available channels and sparse (battery wireless, ~5-min) channels from assets.csv only (static, causal)."""
+    cols = set(str(a.channels_available).split("|")) if isinstance(a.channels_available, str) else set(CH.values())
+    avail = {k for k, c in CH.items() if c in cols}
+    wireless = (not pd.isna(getattr(a, "wireless_update_s", np.nan))) or a.instrumentation_tier == "T1_RETROFIT"
+    sparse = {k for k in WIRELESS if k in avail} if wireless else set()
+    return avail, sparse
+
+
 # ------------------------------------------------------------------------------------------------------ frame build
 def build_frame(feat: pd.DataFrame, ctx: pd.DataFrame, a: pd.Series) -> pd.DataFrame:
     ws, we = pd.Timestamp(a.window_start_utc), pd.Timestamp(a.window_end_utc)
@@ -207,13 +220,14 @@ def physics_columns(f: pd.DataFrame, a: pd.Series) -> pd.DataFrame:
         r_exp = np.full(len(f), np.nan)
     f["u"] = u
     f["r_exp"] = r_exp
+    avail, _ = static_channels(a)
     sp = f.get("motor_speed_rpm__mean")
-    r_meas = (sp.values / a.motor_rated_rpm) if sp is not None and sp.notna().any() else np.where(f["run"].values, 1.0, 0.0)
+    r_meas = (sp.values / a.motor_rated_rpm) if (sp is not None and "n" in avail) else np.where(f["run"].values, 1.0, 0.0)
     f["r_meas"] = r_meas
     f["rx"] = r_meas / r_exp - 1.0 if ctrl == "VFD_TEMPERATURE" else np.nan
     # pump-curve head ratio where suction, discharge and flow are measured (speed from the drive or rated)
     hr = np.full(len(f), np.nan)
-    if all(f.get(CH[k] + "__mean") is not None and f[CH[k] + "__mean"].notna().any() for k in ("ps", "pd", "q")):
+    if all(k in avail and f.get(CH[k] + "__mean") is not None for k in ("ps", "pd", "q")):
         rho = 1000.0
         H_meas = (f[CH["pd"] + "__mean"].values - f[CH["ps"] + "__mean"].values) * 1000.0 / (rho * G)
         Q = f[CH["q"] + "__mean"].values / 3600.0
@@ -314,7 +328,7 @@ def physics_signatures(f: pd.DataFrame, a: pd.Series) -> None:
     dem = np.clip(np.nan_to_num(f["ctx_dem"].values, nan=70.0) / 100.0, 0.05, 1.3)
     if a.control in ("FIXED_SPEED",):
         dem = np.full(len(f), 0.8)
-    tsup = np.nan_to_num(f["ctx_tsup"].values, nan=np.nanmedian(f["ctx_tsup"].values))
+    tsup = np.nan_to_num(pd.Series(f["ctx_tsup"].values).ffill().values, nan=15.0)
     lvl = f["ctx_lvl"].values
     zs = np.where(np.isfinite(lvl), lvl, pr["zs"])
     base = steady_state(a, dem, tsup, zs)
@@ -340,10 +354,11 @@ def _design(f: pd.DataFrame, k: str, ctrl: str) -> np.ndarray:
         cols = [ones, uu, uu ** 2, amb, tf] if ctrl != "FIXED_SPEED" else [ones, amb, tf]
         return np.column_stack(cols)
     lvl = f["ctx_lvl"].values
-    has_lvl = np.isfinite(lvl).mean() > 0.9
+    has_lvl = a_profile(f) in ("INDUSTRIAL_CW", "PROCESS_TRANSFER")      # profiles with a measured suction level
     if k in ("ps", "pd") and has_lvl:
         base = [ones] if ctrl == "FIXED_SPEED" else [ones, u, u ** 2, u ** 3]
-        return np.column_stack(base + [np.nan_to_num(lvl, nan=np.nanmedian(lvl))])
+        pr = PROFILE.get(a_profile(f), GENERIC_PROFILE)
+        return np.column_stack(base + [np.nan_to_num(pd.Series(lvl).ffill().values, nan=pr["zs"])])
     if k == "tf":
         return np.column_stack([ones, ewm(f["ctx_tsup"].values, 3), u])
     if k in VIB:
@@ -353,6 +368,10 @@ def _design(f: pd.DataFrame, k: str, ctrl: str) -> np.ndarray:
     if ctrl == "FIXED_SPEED":
         return np.column_stack([ones])
     return np.column_stack([ones, u, u ** 2, u ** 3])
+
+
+def a_profile(f: pd.DataFrame) -> str:
+    return f.attrs.get("profile", "")
 
 
 def _ridge(X, y, lam=1e-3):
@@ -373,13 +392,11 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
     checkpoints = list(range(P["min_cal_min"], cal_end + 1, P["refit_every_min"]))
     if not checkpoints or checkpoints[-1] != cal_end:
         checkpoints.append(cal_end)
-    avail = []
-    for k, col in CH.items():
-        m = col + "__mean"
-        if m in f and f[m].notna().sum() > 30:
-            avail.append(k)
+    st_avail, st_sparse = static_channels(a)
+    avail = [k for k in CH if k in st_avail and CH[k] + "__mean" in f]
     channels = [k for k in avail if k not in ("n",) or ctrl != "VFD_TEMPERATURE"] + \
-               (["rx"] if ctrl == "VFD_TEMPERATURE" else []) + (["hr"] if f["hr"].notna().sum() > 30 else [])
+               (["rx"] if ctrl == "VFD_TEMPERATURE" and "n" in avail else []) + \
+               (["hr"] if all(k in avail for k in ("ps", "pd", "q")) else [])
     if "n" in avail and ctrl == "VFD_TEMPERATURE":
         channels.append("n")
     for k in channels:
@@ -388,7 +405,7 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
             sparse = False
         else:
             x = f[CH[k] + "__mean"].values.astype(float)
-            sparse = f[CH[k] + "__count"].fillna(0).median() < 30 if CH[k] + "__count" in f else False
+            sparse = k in st_sparse
             if sparse:
                 x = ffill_limit(x, 6)
         X = _design(f, k, ctrl) if k not in ("rx", "hr") else np.ones((n, 1))
@@ -564,6 +581,7 @@ def _persist(flag: np.ndarray, n: int) -> np.ndarray:
 
 
 def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=None) -> list:
+    st_avail, st_sparse = static_channels(a)
     n = len(f)
     t = f["t"]
     steady = f["steady"].values
@@ -598,10 +616,10 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     sensor_open = {k: np.zeros(n, dtype=bool) for k in channels}
     for k in SENSOR_CH:
         col = CH[k]
-        if col + "__mean" not in f or f[col + "__mean"].notna().sum() < 30:
+        if k not in st_avail or col + "__mean" not in f:
             continue
         cnt = f[col + "__count"].fillna(0).values
-        sparse = np.median(cnt[run]) < 30 if run.any() else False
+        sparse = k in st_sparse
         mean = f[col + "__mean"].values
         # stuck: identical consecutive values while running
         if sparse:
@@ -636,13 +654,10 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             sd = f[col + "__std"].values.astype(float)
             ref = _causal_ref(sd, steady, P)
             ratio = sd / np.maximum(ref, 1e-6)
-            cpl = [c for c in COUPLED.get(k, []) if c in CH and CH[c] + "__std" in f and f[CH[c] + "__std"].notna().sum() > 30]
+            cpl = [c for c in COUPLED.get(k, []) if c in st_avail and c not in st_sparse and CH[c] + "__std" in f]
             cr = np.zeros(n)
             for c in cpl:
                 sdc = f[CH[c] + "__std"].values.astype(float)
-                cnt_c = f[CH[c] + "__count"].fillna(0).values
-                if np.median(cnt_c[run]) < 30 if run.any() else True:
-                    continue
                 rc = sdc / np.maximum(_causal_ref(sdc, steady, P), 1e-6)
                 cr = np.maximum(cr, np.nan_to_num(rc))
             rr = ewm(np.nan_to_num(ratio, nan=1.0), 5)
@@ -1029,6 +1044,7 @@ def prepare_asset(inputs: dict, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
     feat = inputs["feat"][inputs["feat"].asset_id == a.asset_id]
     ctx = inputs["ctx"][inputs["ctx"].asset_id == a.asset_id]
     f = build_frame(feat, ctx, a)
+    f.attrs["profile"] = a.profile
     mode = f["operating_mode"].values
     f["run"] = (mode == "RUNNING") & (f["running_fraction"].values >= 0.99) & (f["rows"].values >= 30)
     f["since_start"] = _runs(f["run"].values)

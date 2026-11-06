@@ -219,6 +219,10 @@ def physics_columns(f: pd.DataFrame, a: pd.Series) -> pd.DataFrame:
         H_c = Hb * (h0 * r ** 2 - (h0 - 1.0) * (Q / Qb) ** 2)
         with np.errstate(invalid="ignore", divide="ignore"):
             hr = np.where(H_c > 0.2 * Hb, H_meas / H_c - 1.0, np.nan)
+            # sensitivity of the derived head ratio to an error in each instrument it is computed from
+            f["dhr_pd"] = 1000.0 / (rho * G * H_c)
+            f["dhr_ps"] = -1000.0 / (rho * G * H_c)
+            f["dhr_q"] = (H_meas / H_c ** 2) * 2.0 * Hb * (h0 - 1.0) * Q / Qb ** 2 / 3600.0
     f["hr"] = hr
     return f
 
@@ -821,9 +825,23 @@ def _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, ctrl, P, escalation_on
         fits[name] = res
         if res < best_res:
             best, best_res = name, res
-    # one instrument alone (either sign)
-    sens_k = max(chans, key=lambda k: abs(g(k)))
-    sens_res = nz - g(sens_k) ** 2
+    # one instrument alone (either sign); an error in pd / ps / q also moves the derived head ratio hr
+    sens_k, sens_res = None, nz
+    for k in chans:
+        if k == "hr":
+            continue
+        sv = np.zeros(len(chans))
+        sv[chans.index(k)] = 1.0
+        if "hr" in chans and k in ("pd", "ps", "q") and "dhr_" + k in f:
+            c = f["dhr_" + k].values[j]
+            if np.isfinite(c):
+                sv[chans.index("hr")] = c * scl[k][j] / scl["hr"][j]
+        zs_ = float(z @ sv)
+        res = nz - zs_ ** 2 / float(sv @ sv)
+        if res < sens_res:
+            sens_k, sens_res = k, res
+    if sens_k is None:
+        sens_k = max(chans, key=lambda k: abs(g(k)))
     if (sens_k in SENSOR_CH or sens_k == "rx") and not escalation_only:
         if (best is None or sens_res + P["sensor_margin"] < best_res) and sens_res < 0.35 * nz:
             return "SENSOR:" + sens_k

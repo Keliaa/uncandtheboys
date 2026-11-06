@@ -68,7 +68,10 @@ PARAMS = {
     "single_ratio": 0.25,
     "cal_inflate_min": 360,     # residual scale x sqrt(1 + 360 / calibration minutes): early fits are uncertain
     "settle_min": {"bt": 90, "wt": 150, "tf": 20},   # thermal channels need time after a start to settle
-    "close_after_type": {"CAVITATION": 25, "AIR_ENTRAINMENT": 25},       # coupled channels must stay below this fraction of k for a single-channel sensor call
+    "close_after_type": {"CAVITATION": 25, "AIR_ENTRAINMENT": 25},
+    "escalation_types": ("CAVITATION", "AIR_ENTRAINMENT"),
+    "close_machine_min": 720,   # steady-running quiet minutes before a machine episode ends
+    "close_sensor_min": 240,       # coupled channels must stay below this fraction of k for a single-channel sensor call
 }
 
 
@@ -370,9 +373,12 @@ class Track:
     each get their own alert, but a stable problem never re-alerts.
     """
 
-    def __init__(self, name, P):
+    def __init__(self, name, P, close_after=None, escalate_only=True):
         self.name = name
         self.P = P
+        self.close_after = close_after if close_after is not None else P["close_after_min"]
+        self.escalate_only = escalate_only
+        self.quiet = 0
         self.open = False
         self.last_active = -10 ** 9
         self.start = None
@@ -384,13 +390,17 @@ class Track:
     def _close_after(self, ft):
         return self.P["close_after_type"].get(ft, self.P["close_after_min"])
 
-    def step(self, j, active, ftype):
+    def step(self, j, active, ftype, observed=True):
+        """observed=False (pump stopped, start-up transient, data gap) neither extends nor ends an episode."""
         P = self.P
         emit = None
         for ft in list(self.type_alerted):
-            if j - self.type_last.get(ft, -10 ** 9) > self._close_after(ft):
+            if ft in P["close_after_type"] and j - self.type_last.get(ft, -10 ** 9) > self._close_after(ft):
                 del self.type_alerted[ft]
+        if not active and not observed:
+            return None
         if active:
+            self.quiet = 0
             if not self.open:
                 self.open, self.start, self.votes, self.any_alert = True, j, [], False
             self.last_active = j
@@ -405,13 +415,18 @@ class Track:
                 vals, cnt = np.unique([v for v in self.votes[-P["max_wait_min"]:] if v is not None] or ["UNKNOWN"],
                                       return_counts=True)
                 cand = vals[np.argmax(cnt)]
+            if cand is not None and self.any_alert and self.escalate_only and cand not in P["escalation_types"]:
+                cand = None
             if cand is not None and cand not in self.type_alerted and not (cand == "UNKNOWN" and self.any_alert):
                 emit = cand
                 self.type_alerted[cand] = True
                 self.type_last[cand] = j
                 self.any_alert = True
-        elif self.open and j - self.last_active > P["close_after_min"]:
-            self.open = False
+        else:
+            self.quiet += 1
+            if self.open and self.quiet > self.close_after:
+                self.open = False
+                self.type_alerted = {}
         return emit
 
 
@@ -475,9 +490,9 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             flat = (sd == 0) | (mx == mn)
             same_as_prev = np.r_[False, mean[1:] == mean[:-1]]
             stuck_flag = _persist(run & flat & (same_as_prev | flat) & (cnt >= 30), P["stuck_min"])
-        trk = Track("stuck_" + k, P)
+        trk = Track("stuck_" + k, P, P["close_sensor_min"])
         for j in range(n):
-            ft = trk.step(j, bool(stuck_flag[j]), "SENSOR_STUCK")
+            ft = trk.step(j, bool(stuck_flag[j]), "SENSOR_STUCK", bool(run[j]))
             sensor_open[k][j] |= trk.open
             if ft:
                 alerts.append((j, _cfg_alert(a, None, "SENSOR", "SENSOR_STUCK", 0.85,
@@ -501,9 +516,9 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             heavy = np.nan_to_num(f["ctx_hs"].values) > 2.0
             nflag = _persist(run & (rr > P["noise_ratio"]) & (cr < 0.5 * rr) & ~(heavy & (k in ("ps", "pd"))),
                              P["noise_persist"])
-            trk = Track("noise_" + k, P)
+            trk = Track("noise_" + k, P, P["close_sensor_min"])
             for j in range(n):
-                ft = trk.step(j, bool(nflag[j]), "SENSOR_NOISE_SPIKES")
+                ft = trk.step(j, bool(nflag[j]), "SENSOR_NOISE_SPIKES", bool(run[j]))
                 sensor_open[k][j] |= trk.open
                 if ft:
                     alerts.append((j, _cfg_alert(a, None, "SENSOR", "SENSOR_NOISE_SPIKES", 0.8,
@@ -517,10 +532,10 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             continue
         cmax = np.max(np.vstack([np.abs(np.nan_to_num(zmag[c])) for c in cpl]), axis=0)
         single = act[k] & (cmax < P["single_ratio"] * np.abs(zmag[k])) & (cmax < 2.5)
-        trk = Track("single_" + k, P)
+        trk = Track("single_" + k, P, P["close_sensor_min"])
         for j in range(n):
             ftype = _step_or_ramp(Z[k], j) if single[j] else None
-            ft = trk.step(j, bool(single[j]), ftype)
+            ft = trk.step(j, bool(single[j]), ftype, bool(steady[j]))
             sensor_open[k][j] |= trk.open
             if ft:
                 alerts.append((j, _cfg_alert(a, None, "SENSOR", ft, 0.7,
@@ -544,14 +559,15 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     hyd_ch = [c for c in HYD if c in channels]
     vib_ch = [c for c in VIB if c in channels]
 
-    trk_b = Track("bearing", P)
-    trk_v = Track("velocity", P)
-    trk_h = Track("hydraulic", P)
+    cm = P["close_machine_min"]
+    trk_b = Track("bearing", P, cm)
+    trk_v = Track("velocity", P, cm)
+    trk_h = Track("hydraulic", P, cm)
     for j in range(n):
         if not steady[j]:
-            trk_b.step(j, False, None)
-            trk_v.step(j, False, None)
-            trk_h.step(j, False, None)
+            trk_b.step(j, False, None, False)
+            trk_v.step(j, False, None, False)
+            trk_h.step(j, False, None, False)
             continue
         zz = {k: zget(k, j) for k in channels}
         active = {k for k in channels if act[k][j] and not sensor_open[k][j] if k in sensor_open} | \

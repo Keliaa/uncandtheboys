@@ -73,6 +73,8 @@ PARAMS = {
     "air_hs": 2.0, "air_lvl": 1.6,
     "post_maint_min": 720,
     "step_rise_min": 20,
+    "lockout_reset_min": 10 ** 9, "sensor_realert_min": 720,   # lockout reset tested: hurts (routine lockouts)
+    "snap_valid_min": 270, "snap_env": 4.5, "snap_v2": 0.55, "snap_r21": 0.9, "snap_v1": 1.1,
     "abs_scale_fixed": {"i": 0.012, "pw": 0.015, "pd": 0.012, "q": 0.02},   # fleet uncertainty of absolute physics
     "abs_scale_vfd": {"i": 0.04, "pw": 0.04, "pd": 0.025, "q": 0.03},
     "k_abs": 3.5, "abs_unexplained": 0.3,
@@ -489,7 +491,9 @@ class Track:
     each get their own alert, but a stable problem never re-alerts.
     """
 
-    def __init__(self, name, P, close_after=None, escalate_only=True):
+    def __init__(self, name, P, close_after=None, escalate_only=True, realert_min=0):
+        self.realert_min = realert_min
+        self.last_alert_of = {}
         self.name = name
         self.P = P
         self.close_after = close_after if close_after is not None else P["close_after_min"]
@@ -502,6 +506,12 @@ class Track:
         self.type_last = {}        # type -> last minute voted
         self.type_alerted = {}     # type -> True while its sub-episode is alerted and open
         self.any_alert = False
+
+    def reset(self):
+        """Close the episode (e.g. the pump was locked out for work: a repair resolves the problem)."""
+        self.open = False
+        self.type_alerted = {}
+        self.quiet = 0
 
     def _close_after(self, ft):
         return self.P["close_after_type"].get(ft, self.P["close_after_min"])
@@ -533,8 +543,11 @@ class Track:
                 cand = vals[np.argmax(cnt)]
             if cand is not None and self.any_alert and self.escalate_only and cand not in P["escalation_types"]:
                 cand = None
+            if cand is not None and self.realert_min and j - self.last_alert_of.get(cand, -10 ** 9) < self.realert_min:
+                cand = None
             if cand is not None and cand not in self.type_alerted and not (cand == "UNKNOWN" and self.any_alert):
                 emit = cand
+                self.last_alert_of[cand] = j
                 self.type_alerted[cand] = True
                 self.type_last[cand] = j
                 self.any_alert = True
@@ -610,7 +623,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             flat = (sd == 0) | (mx == mn)
             same_as_prev = np.r_[False, mean[1:] == mean[:-1]]
             stuck_flag = _persist(run & flat & (same_as_prev | flat) & (cnt >= 30), P["stuck_min"])
-        trk = Track("stuck_" + k, P, P["close_sensor_min"])
+        trk = Track("stuck_" + k, P, P["close_sensor_min"], realert_min=P["sensor_realert_min"])
         for j in range(n):
             ft = trk.step(j, bool(stuck_flag[j]), "SENSOR_STUCK", bool(run[j]))
             sensor_open[k][j] |= trk.open
@@ -636,7 +649,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             heavy = np.nan_to_num(f["ctx_hs"].values) > 2.0
             nflag = _persist(run & (rr > P["noise_ratio"]) & (cr < 0.5 * rr) & ~(heavy & (k in ("ps", "pd"))),
                              P["noise_persist"])
-            trk = Track("noise_" + k, P, P["close_sensor_min"])
+            trk = Track("noise_" + k, P, P["close_sensor_min"], realert_min=P["sensor_realert_min"])
             for j in range(n):
                 ft = trk.step(j, bool(nflag[j]), "SENSOR_NOISE_SPIKES", bool(run[j]))
                 sensor_open[k][j] |= trk.open
@@ -653,7 +666,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     hyd_ch = [c for c in HYD if c in channels and not (c == "n" and "rx" in channels)]
     sig_ch = [c for c in hyd_ch if f"sig_SUCTION_STRAINER_CLOGGING_{c}" in f]
     other_sensor = [c for c in SENSOR_CH if c in channels and c not in hyd_ch and c not in P["no_drift_ch"]]
-    single_trk = {k: Track("single_" + k, P, P["close_sensor_min"]) for k in hyd_ch + other_sensor if k in SENSOR_CH or k == "rx"}
+    single_trk = {k: Track("single_" + k, P, P["close_sensor_min"], realert_min=P["sensor_realert_min"]) for k in hyd_ch + other_sensor if k in SENSOR_CH or k == "rx"}
     sig = {name: {k: f[f"sig_{name}_{k}"].values for k in sig_ch} for name in SIG_FAULTS}
     scl = {k: f["s_" + k].values for k in channels}
     crest = f[CH["c"] + "__mean"].values if CH["c"] + "__mean" in f else np.full(n, np.nan)
@@ -676,6 +689,16 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     sigA = {name: {k: f[f"sig_{name}_{k}"].values / (np.maximum(np.abs(f["ph_" + k].values), 1e-6) * abs_sc[k])
                    for k in abs_ch} for name in SIG_FAULTS}
     trk_a = Track("absolute", P, P["close_machine_min"])
+    # vibration snapshots (every ~4 h): latest snapshot taken before the end of minute j
+    sf = snapshot_features(snaps, a)
+    snap_idx = np.full(n, -1)
+    if len(sf):
+        ts = pd.to_datetime(sf["t"], utc=True).values.astype("datetime64[ns]").astype(np.int64)
+        tend = (f["t"] + pd.Timedelta(minutes=1)).values.astype("datetime64[ns]").astype(np.int64)
+        snap_idx = np.searchsorted(ts, tend, side="left") - 1
+        age = np.where(snap_idx >= 0, (tend - ts[np.maximum(snap_idx, 0)]) / 6e10, np.inf)
+        snap_idx = np.where(age <= P["snap_valid_min"], snap_idx, -1)
+    SV1, SV2, SENV = (sf["v1"].values, sf["v2"].values, sf["env_bpfo"].values) if len(sf) else (None, None, None)
     ZL = {k: ewm_seg(np.where(steady, Z[k], np.nan), P["ref_span"], reset) for k in channels}
     labels = np.array([None] * n, dtype=object)
 
@@ -685,9 +708,14 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         v = src[k][j]
         return 0.0 if np.isnan(v) else float(v)
 
+    lock = f["operating_mode"].values == "LOCKED_OUT"
+    lock_run = _runs(lock)
     for j in range(n):
+        if j > 0 and lock[j - 1] and not lock[j] and lock_run[j - 1] >= P["lockout_reset_min"]:
+            for tk in (trk_b, trk_v, trk_h):
+                tk.reset()
         if not steady[j]:
-            for tk in list(single_trk.values()) + [trk_b, trk_v, trk_h]:
+            for tk in list(single_trk.values()) + [trk_b, trk_v, trk_h, trk_a]:
                 tk.step(j, False, None, False)
             continue
         zz = {k: zget(k, j, zmag) for k in channels}
@@ -727,28 +755,44 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                                              f"(z={zz[k]:+.1f}); the physically coupled channels do not show the change a real "
                                              f"machine fault would cause. Pattern: {'step change' if ft == 'SENSOR_CALIBRATION_SHIFT' else 'gradual ramp'}.",
                                              ACTIONS[ft].replace("the transmitter", f"the {NAME[kk]} transmitter"))))
+        # --- snapshot spectra (fleet-level thresholds): BPFO envelope, 1x / 2x running-speed velocity lines
+        snap_brg = snap_mis = snap_imb = False
+        si = snap_idx[j]
+        if si >= 0:
+            v1, v2, envo = SV1[si], SV2[si], SENV[si]
+            snap_brg = envo >= P["snap_env"]
+            snap_mis = v2 >= P["snap_v2"] and v2 >= P["snap_r21"] * v1
+            snap_imb = (not snap_mis) and v1 >= P["snap_v1"] and v2 < 0.7 * v1
         # --- bearing: acceleration / crest factor (fleet crest prior catches damage present at window start)
         crest_hi = (not np.isnan(crest_s[j])) and crest_s[j] > P["crest_abs"]
-        brg = (("a" in active and zz.get("a", 0) > 0) or ("c" in active and zz.get("c", 0) > 0) or crest_hi)
-        cav_now = lab in ("CAVITATION", "AIR_ENTRAINMENT")
-        b_type = "BEARING_WEAR" if brg and not cav_now and not (zz.get("v", 0) > 2 * max(zz.get("a", 0), 0.1) and not crest_hi) else None
+        brg = (("a" in active and zz.get("a", 0) > 0) or ("c" in active and zz.get("c", 0) > 0) or crest_hi or snap_brg)
+        cav_now = lab in ("CAVITATION", "AIR_ENTRAINMENT") or zz.get("ps", 0.0) < -P["cav_ps_z"]
+        b_type = "BEARING_WEAR" if brg and not cav_now and (snap_brg or crest_hi or not (zz.get("v", 0) > 2 * max(zz.get("a", 0), 0.1))) else None
         e = trk_b.step(j, b_type is not None, b_type)
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.75, _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s, ES),
-                                         ACTIONS[e])))
+            sn = f" Vibration snapshot: bearing outer-race (BPFO) envelope peak {SENV[si]:.1f}x the noise floor (healthy < 4)." \
+                if si >= 0 and snap_brg else ""
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.85 if snap_brg else 0.7,
+                                         _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s, ES) + sn, ACTIONS[e])))
         # --- velocity family: imbalance / misalignment; a bearing in late stage raises acceleration much more than velocity
         v_up = "v" in active and zz.get("v", 0) > 0
         v_type = None
-        if v_up and not cav_now and not (lab is not None and lab.startswith(("SUCTION", "DISCHARGE"))):
-            brg_explains = trk_b.open and zz.get("a", 0) > 0.5 * zz.get("v", 0)
+        if snap_mis and not cav_now:
+            v_type = "MISALIGNMENT"
+        elif snap_imb and not cav_now:
+            v_type = "IMBALANCE"
+        elif v_up and not cav_now and not (lab is not None and lab.startswith(("SUCTION", "DISCHARGE"))):
+            brg_explains = (zz.get("a", 0) > max(0.5 * zz.get("v", 0), P["k_slow"])) or snap_brg or crest_hi
             if not brg_explains:
                 mis = (zz.get("bt", 0) > 1.5 or zz.get("wt", 0) > 1.5 or since_lock[j] < P["post_maint_min"]
                        or _step_or_ramp(ZF["v"], j, P) == "SENSOR_CALIBRATION_SHIFT")
                 v_type = "MISALIGNMENT" if mis else "IMBALANCE"
         e = trk_v.step(j, v_type is not None, v_type)
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES),
-                                         ACTIONS[e])))
+            sn = (f" Vibration snapshot: 1x {SV1[si]:.2f} mm/s, 2x {SV2[si]:.2f} mm/s"
+                  f" ({'2x dominant: typical of misalignment' if snap_mis else '1x dominant: typical of imbalance' if snap_imb else 'no clear harmonic pattern'}).") if si >= 0 else ""
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.8 if (snap_mis or snap_imb) else 0.6,
+                                         _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES) + sn, ACTIONS[e])))
         # --- absolute physics track (pre-existing hydraulic faults)
         a_type = None
         if abs_ch and not any(sensor_open.get(k, np.zeros(n, bool))[j] for k in abs_ch):
@@ -846,7 +890,7 @@ def _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, ctrl, P, escalation_on
         if (best is None or sens_res + P["sensor_margin"] < best_res) and sens_res < 0.35 * nz:
             return "SENSOR:" + sens_k
     if escalation_only:
-        if best == "IMPELLER_WEAR" and best_res < P["unexplained"] * nz:
+        if best == "IMPELLER_WEAR" and best_res < P["unexplained"] * nz and q("ps") > -k3:
             hs, lvl = f["ctx_hs"].values[j], f["ctx_lvl"].values[j]
             if ((not np.isnan(hs)) and hs > P["air_hs"]) or ((not np.isnan(lvl)) and lvl < P["air_lvl"]) or vib:
                 return "AIR_ENTRAINMENT"
@@ -857,7 +901,7 @@ def _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, ctrl, P, escalation_on
         hs, lvl = f["ctx_hs"].values[j], f["ctx_lvl"].values[j]
         weather = (not np.isnan(hs)) and hs > P["air_hs"]
         low_level = (not np.isnan(lvl)) and lvl < P["air_lvl"]
-        if weather or low_level or vib:
+        if (weather or low_level or vib) and q("ps") > -k3:
             return "AIR_ENTRAINMENT"
     return best
 
@@ -1007,3 +1051,42 @@ def run_b4(inputs: dict, P: dict | None = None, return_frames: bool = False):
     cols = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confidence", "evidence", "recommended_action"]
     pred = pd.DataFrame(rows, columns=cols)
     return (pred, frames) if return_frames else pred
+
+
+# --------------------------------------------------------------------------------------------- vibration snapshots
+def snapshot_features(snaps: pd.DataFrame, a: pd.Series) -> pd.DataFrame:
+    """Per snapshot: 1x / 2x / 3x running-speed velocity lines [mm/s RMS] and the bearing-defect envelope peak
+    (BPFO / BPFI x running speed in the 1.8-4.2 kHz envelope spectrum, relative to the envelope noise floor)."""
+    from scipy.signal import butter, hilbert, sosfiltfilt
+    cols = ["t", "rpm", "v1", "v2", "v3", "env_bpfo", "env_bpfi", "hf"]
+    if snaps is None or not len(snaps):
+        return pd.DataFrame(columns=cols)
+    s = snaps[snaps.asset_id == a.asset_id].sort_values("timestamp_utc")
+    out = []
+    for _, r in s.iterrows():
+        x = np.asarray(r.samples, dtype=float)
+        fs, rpm = float(r.sample_rate_hz), float(r.rpm_at_capture)
+        if rpm < 120 or len(x) < 1024:
+            continue
+        n = len(x)
+        fr = rpm / 60.0
+        w = np.hanning(n)
+        fq = np.fft.rfftfreq(n, 1.0 / fs)
+        amp = np.abs(np.fft.rfft(x * w)) * 2.0 / w.sum()
+        vel = amp * G / (2 * np.pi * np.maximum(fq, 1.0)) * 1000.0 / np.sqrt(2.0)
+
+        def pk(f0, arr):
+            m = (fq > 0.97 * f0) & (fq < 1.03 * f0)
+            return float(arr[m].max()) if m.any() else np.nan
+        hi = min(4200.0, 0.45 * fs)
+        sos = butter(4, [1800.0, hi], btype="band", fs=fs, output="sos")
+        xb = sosfiltfilt(sos, x)
+        env = np.abs(hilbert(xb))
+        env = env - env.mean()
+        E = np.abs(np.fft.rfft(env * w)) * 2.0 / w.sum()
+        floor = float(np.median(E[(fq > 5) & (fq < 500)])) + 1e-12
+        bo, bi = a.bearing_bpfo_order * fr, a.bearing_bpfi_order * fr
+        out.append({"t": pd.Timestamp(r.timestamp_utc), "rpm": rpm, "v1": pk(fr, vel), "v2": pk(2 * fr, vel),
+                    "v3": pk(3 * fr, vel), "env_bpfo": max(pk(bo, E), pk(2 * bo, E)) / floor,
+                    "env_bpfi": pk(bi, E) / floor, "hf": float(np.sqrt(np.mean(xb ** 2)))})
+    return pd.DataFrame(out, columns=cols)

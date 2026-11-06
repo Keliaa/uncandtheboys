@@ -54,4 +54,4 @@ if __name__ == "__main__":
     pd.set_option("display.width", 250); pd.set_option("display.max_colwidth", 110); pd.set_option("display.max_rows", 500)
     only_false = "--false" in sys.argv
     q = p[p.in_windows == "FALSE"] if only_false else p
-    print(q[["asset_id", "alert_time_utc", "fault_type", "in_windows", "evidence"]].to_string(index=False))
+    print(q[["asset_id", "alert_time_utc", "fault_type", "detector", "in_windows", "evidence"]].to_string(index=False))

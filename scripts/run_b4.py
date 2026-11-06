@@ -24,6 +24,7 @@ from retrofit_sim import b4  # noqa: E402
 
 DEV_IDS = [f"PUMP-0{i}" for i in range(1, 10)]
 TEST_IDS = ["PUMP-10", "PUMP-11", "PUMP-12"]
+SUBMIT_COLS = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confidence", "evidence", "recommended_action"]
 
 
 def main(argv=None):
@@ -41,7 +42,7 @@ def main(argv=None):
     pred = b4.run_b4(inp, P)
     pred.to_csv(os.path.join(a.out, "b4_trainval_predictions.csv"), index=False)
     val_ids = set(inp["assets"][inp["assets"].split == "validation"].asset_id)
-    pred[pred.asset_id.isin(val_ids)].to_csv(os.path.join(a.out, "b4_validation_predictions.csv"), index=False)
+    pred[pred.asset_id.isin(val_ids)][SUBMIT_COLS].to_csv(os.path.join(a.out, "b4_validation_predictions.csv"), index=False)
     print(f"B4 train+validation: {len(pred)} alerts in {time.time() - t0:.0f} s")
     import eval as ev  # noqa: E402
     res = {"B4": ev.score_splits(pred, a.data)}
@@ -61,7 +62,7 @@ def main(argv=None):
     if a.final:
         inp_t = b4.load_inputs(a.data, TEST_IDS)
         pt = b4.run_b4(inp_t, P)
-        pt.to_csv(os.path.join(a.out, "b4_test_predictions.csv"), index=False)
+        pt[SUBMIT_COLS].to_csv(os.path.join(a.out, "b4_test_predictions.csv"), index=False)
         print(f"B4 test: {len(pt)} alerts written to results/b4_test_predictions.csv (not scored: labels are hidden)")
     print(f"total runtime {time.time() - t0:.0f} s")
     return 0

@@ -319,7 +319,10 @@ def steady_state(a: pd.Series, dem, tsup, zs, clog=0.05, R=1.0, iw=0.0):
 
 
 SIG_FAULTS = {"SUCTION_STRAINER_CLOGGING": dict(clog=1.0), "DISCHARGE_RESTRICTION": dict(R=1.3),
-              "IMPELLER_WEAR": dict(iw=0.05)}
+              "IMPELLER_WEAR": dict(iw=0.05),
+              # large magnitudes: control valves / drives saturate, so the signature changes direction
+              "SUCTION_STRAINER_CLOGGING@L": dict(clog=3.5), "DISCHARGE_RESTRICTION@L": dict(R=2.2),
+              "IMPELLER_WEAR@L": dict(iw=0.12)}
 
 
 def physics_signatures(f: pd.DataFrame, a: pd.Series) -> None:
@@ -467,9 +470,10 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
 
 
 # ----------------------------------------------------------------------------------------------------- detectors
-def _cfg_alert(a, t, cls, ftype, conf, evidence, action):
-    return {"asset_id": a.asset_id, "alert_time_utc": t, "event_class": cls, "fault_type": ftype,
-            "confidence": float(np.clip(conf, 0.05, 0.99)), "evidence": evidence, "recommended_action": action}
+def _cfg_alert(a, detector, cls, ftype, conf, evidence, action):
+    return {"asset_id": a.asset_id, "alert_time_utc": None, "event_class": cls, "fault_type": ftype,
+            "confidence": float(np.clip(conf, 0.05, 0.99)), "evidence": evidence, "recommended_action": action,
+            "detector": detector}
 
 
 ACTIONS = {
@@ -594,7 +598,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     tr = Track("gap", P)
     for j in range(n):
         if gap_run[j] == P["gap_min"]:
-            alerts.append((j, _cfg_alert(a, None, "SENSOR", "COMMUNICATION_LOSS", 0.9,
+            alerts.append((j, _cfg_alert(a, "gap", "SENSOR", "COMMUNICATION_LOSS", 0.9,
                                          f"No telemetry rows for {P['gap_min']} min (gateway / network outage).",
                                          ACTIONS["COMMUNICATION_LOSS"])))
 
@@ -646,7 +650,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             ft = trk.step(j, bool(stuck_flag[j]), "SENSOR_STUCK", bool(run[j]))
             sensor_open[k][j] |= trk.open
             if ft:
-                alerts.append((j, _cfg_alert(a, None, "SENSOR", "SENSOR_STUCK", 0.85,
+                alerts.append((j, _cfg_alert(a, "stuck", "SENSOR", "SENSOR_STUCK", 0.85,
                                              f"{NAME[k]} ({col}) frozen at {_last_valid(mean, j):.2f} while the pump runs and coupled "
                                              f"channels vary.", ACTIONS["SENSOR_STUCK"])))
         # noise / spikes (dense channels only): 1-min std far above its calibration level, coupled channels calm
@@ -669,7 +673,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                 ft = trk.step(j, bool(nflag[j]), "SENSOR_NOISE_SPIKES", bool(run[j]))
                 sensor_open[k][j] |= trk.open
                 if ft:
-                    alerts.append((j, _cfg_alert(a, None, "SENSOR", "SENSOR_NOISE_SPIKES", 0.8,
+                    alerts.append((j, _cfg_alert(a, "noise", "SENSOR", "SENSOR_NOISE_SPIKES", 0.8,
                                                  f"{NAME[k]} ({col}) 1-min scatter {rr[j]:.1f}x its normal level; coupled "
                                                  f"channels steady.", ACTIONS["SENSOR_NOISE_SPIKES"])))
 
@@ -744,7 +748,13 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                 # an alerted hydraulic problem is ongoing: diagnose only the change on top of it (escalation)
                 dzc = {k: zc[k] - _lag(ZL[k], j, 30) for k in zc}
                 dzz = {k: zz[k] - _lag(ZL[k], j, 30) for k in zz}
-                lab = _classify_hyd(dzc, dzz, sig_ch, hyd_ch, sig, scl, j, f, a.control, P, escalation_only=True)
+                if zz.get("ps", 0.0) < -P["cav_ps_z"] and (zz.get("a", 0.0) > 3 or zz.get("v", 0.0) > 3) and \
+                        (zz.get("pd", 0.0) < -3 or zz.get("hr", 0.0) < -3):
+                    lab = "CAVITATION"
+                elif zz.get("ps", 0.0) < -3.0:
+                    lab = None          # low suction: never call air entrainment on top of a clog
+                else:
+                    lab = _classify_hyd(dzc, dzz, sig_ch, hyd_ch, sig, scl, j, f, a.control, P, escalation_only=True)
             else:
                 lab = _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, a.control, P)
         labels[j] = lab
@@ -759,13 +769,13 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                 dc = max([abs(zc[c] - _lag(zc_hist[c], j, 240)) for c in cpl] + [0.0])
                 single = bool(act[k][j]) and ((cmax < P["single_ratio"] * abs(zz[k]) and cmax < 2.5) or
                                               (dz > P["k_slow"] and dc < P["single_ratio"] * dz and dc < 2.0))
-            ftype = _step_or_ramp(ZF[k], j, P) if single else None
+            ftype = _step_or_ramp(ZF[k], j, P, steady) if single else None
             ft = tk.step(j, single, ftype, True)
             if k in sensor_open:
                 sensor_open[k][j] |= tk.open and tk.any_alert
             if ft:
                 kk = k if k != "rx" else "n"
-                alerts.append((j, _cfg_alert(a, None, "SENSOR", ft, 0.7,
+                alerts.append((j, _cfg_alert(a, "single", "SENSOR", ft, 0.7,
                                              f"{NAME[k]} deviates alone: {ES[k][j]:+.2f} from the context-expected value "
                                              f"(z={zz[k]:+.1f}); the physically coupled channels do not show the change a real "
                                              f"machine fault would cause. Pattern: {'step change' if ft == 'SENSOR_CALIBRATION_SHIFT' else 'gradual ramp'}.",
@@ -787,7 +797,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         if e:
             sn = f" Vibration snapshot: bearing outer-race (BPFO) envelope peak {SENV[si]:.1f}x the noise floor (healthy < 4)." \
                 if si >= 0 and snap_brg else ""
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.85 if snap_brg else 0.7,
+            alerts.append((j, _cfg_alert(a, "bearing", "MACHINE", e, 0.85 if snap_brg else 0.7,
                                          _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s, ES) + sn, ACTIONS[e])))
         # --- velocity family: imbalance / misalignment; a bearing in late stage raises acceleration much more than velocity
         v_up = "v" in active and zz.get("v", 0) > 0
@@ -800,13 +810,13 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             brg_explains = (zz.get("a", 0) > max(0.5 * zz.get("v", 0), P["k_slow"])) or snap_brg or crest_hi
             if not brg_explains:
                 mis = (zz.get("bt", 0) > 1.5 or zz.get("wt", 0) > 1.5 or since_lock[j] < P["post_maint_min"]
-                       or _step_or_ramp(ZF["v"], j, P) == "SENSOR_CALIBRATION_SHIFT")
+                       or _step_or_ramp(ZF["v"], j, P, steady) == "SENSOR_CALIBRATION_SHIFT")
                 v_type = "MISALIGNMENT" if mis else "IMBALANCE"
         e = trk_v.step(j, v_type is not None, v_type)
         if e:
             sn = (f" Vibration snapshot: 1x {SV1[si]:.2f} mm/s, 2x {SV2[si]:.2f} mm/s"
                   f" ({'2x dominant: typical of misalignment' if snap_mis else '1x dominant: typical of imbalance' if snap_imb else 'no clear harmonic pattern'}).") if si >= 0 else ""
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.8 if (snap_mis or snap_imb) else 0.6,
+            alerts.append((j, _cfg_alert(a, "velocity", "MACHINE", e, 0.8 if (snap_mis or snap_imb) else 0.6,
                                          _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES) + sn, ACTIONS[e])))
         # --- absolute physics track (pre-existing hydraulic faults)
         a_type = None
@@ -823,14 +833,14 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                     al = float(za @ sv) / ss_
                     res = nz - al * float(za @ sv) if al > 0 else nz
                     if res < resA:
-                        bestA, resA = name, res
+                        bestA, resA = name.split("@")[0], res
                 if bestA is not None and resA < P["abs_unexplained"] * nz:
                     a_type = bestA
         e = trk_a.step(j, a_type is not None, a_type)
         if e and not (trk_h.open and e in trk_h.type_alerted):
             ev_txt = "; ".join(f"{NAME[k]} {100 * ZA[k][j] * abs_sc[k]:+.1f}% vs pump/system-curve physics" for k in abs_ch
                                if not np.isnan(ZA[k][j]))
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.6, ev_txt + f" (expected from assets.csv ratings at "
+            alerts.append((j, _cfg_alert(a, "absolute", "MACHINE", e, 0.6, ev_txt + f" (expected from assets.csv ratings at "
                                          f"the current duty; deviation present since the start of monitoring).", ACTIONS[e])))
         # --- hydraulic machine track
         h_type = lab if (lab is not None and not lab.startswith("SENSOR:")) else None
@@ -838,7 +848,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         if e and trk_a.open and e in trk_a.type_alerted:
             e = None
         if e:
-            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s, ES),
+            alerts.append((j, _cfg_alert(a, "hydraulic", "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))
     return _finalize(alerts, f, a)
 
@@ -881,7 +891,9 @@ def _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, ctrl, P, escalation_on
             continue
         alpha = float(z @ s) / ss
         res = nz - alpha * float(z @ s) if alpha > 0 else nz
-        fits[name] = res
+        name = name.split("@")[0]
+        if res < fits.get(name, np.inf):
+            fits[name] = res
         if res < best_res:
             best, best_res = name, res
     # one instrument alone (either sign); an error in pd / ps / q also moves the derived head ratio hr
@@ -937,22 +949,24 @@ def _causal_ref(sd: np.ndarray, steady: np.ndarray, P: dict) -> np.ndarray:
     return out
 
 
-def _step_or_ramp(zf: np.ndarray, j: int, P: dict) -> str:
-    """Calibration step (abrupt) vs drift (gradual): how long the 5-min smoothed residual took to climb from normal
-    (|z| < 1.5) to 70 % of its current level."""
+def _step_or_ramp(zf: np.ndarray, j: int, P: dict, steady: np.ndarray | None = None) -> str:
+    """Calibration step (abrupt) vs drift (gradual): running time (steady minutes only; stops are skipped) the 5-min
+    smoothed residual needed to climb from normal (|z| < 1.5) to 70 % of its current level."""
     if j < 5:
         return "SENSOR_CALIBRATION_SHIFT"
     now = zf[j]
     if abs(now) < 1e-6:
         return "SENSOR_DRIFT"
+    lo = max(0, j - 36 * 60)
     i = j
-    lo = max(0, j - 24 * 60)
-    while i > lo and abs(zf[i]) > 0.7 * abs(now):
+    ok = (lambda x: True) if steady is None else (lambda x: bool(steady[x]))
+    while i > lo and (not ok(i) or abs(zf[i]) > 0.7 * abs(now)):
         i -= 1
-    i_hi = i
-    while i > lo and abs(zf[i]) > 1.5:
+    rise = 0
+    while i > lo and (not ok(i) or abs(zf[i]) > 1.5):
+        if ok(i):
+            rise += 1
         i -= 1
-    rise = i_hi - i
     return "SENSOR_CALIBRATION_SHIFT" if rise <= P["step_rise_min"] else "SENSOR_DRIFT"
 
 
@@ -1064,7 +1078,8 @@ def run_b4(inputs: dict, P: dict | None = None, return_frames: bool = False):
         rows += detect_asset(f, a, channels, P, inputs.get("snaps"))
         if return_frames:
             frames[a.asset_id] = (f, channels)
-    cols = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confidence", "evidence", "recommended_action"]
+    cols = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confidence", "evidence", "recommended_action",
+            "detector"]
     pred = pd.DataFrame(rows, columns=cols)
     return (pred, frames) if return_frames else pred
 

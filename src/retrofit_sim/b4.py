@@ -34,6 +34,8 @@ NAME = {"v": "vibration velocity", "a": "vibration acceleration", "c": "vibratio
         "ps": "suction pressure", "pd": "discharge pressure", "i": "motor current", "pw": "motor power", "q": "flow",
         "n": "motor speed", "wt": "winding temperature", "tf": "fluid temperature", "vp": "valve position",
         "rx": "speed vs physics-required speed", "hr": "head vs pump curve"}
+UNIT = {"v": "mm/s", "a": "g", "c": "", "bt": "degC", "ps": "kPa", "pd": "kPa", "i": "A", "pw": "kW", "q": "m3/h",
+        "n": "rpm", "wt": "degC", "tf": "degC", "vp": "%"}
 HYD = ["rx", "n", "i", "pw", "ps", "pd", "q", "vp", "hr"]
 VIB = ["v", "a", "c"]
 TEMP = ["bt", "wt"]
@@ -779,7 +781,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             if ft:
                 kk = k if k != "rx" else "n"
                 alerts.append((j, _cfg_alert(a, "single", "SENSOR", ft, 0.7,
-                                             f"{NAME[k]} deviates alone: {ES[k][j]:+.2f} from the context-expected value "
+                                             f"{NAME[k]} deviates alone: {ES[k][j]:+.2f} {UNIT.get(k, '') if k != 'rx' else ''} from the context-expected value "
                                              f"(z={zz[k]:+.1f}); the physically coupled channels do not show the change a real "
                                              f"machine fault would cause. Pattern: {'step change' if ft == 'SENSOR_CALIBRATION_SHIFT' else 'gradual ramp'}.",
                                              ACTIONS[ft].replace("the transmitter", f"the {NAME[kk]} transmitter"))))
@@ -1035,7 +1037,8 @@ def _evidence(f, j, keys, zz, crest_s, ES=None) -> str:
             if k in ("rx", "hr"):
                 parts.append(f"{NAME[k]} {100 * e:+.1f}% (z={zz[k]:+.1f})")
             else:
-                parts.append(f"{NAME[k]} {e:+.2f} vs expected (z={zz[k]:+.1f})")
+                parts.append(f"{NAME[k]} {abs(e):.2f} {UNIT.get(k, '')} {'above' if e > 0 else 'below'} the value expected "
+                             f"for this operating point (z={zz[k]:+.1f})")
     if not np.isnan(crest_s[j]) and crest_s[j] > 3.5:
         parts.append(f"crest factor {crest_s[j]:.2f} (healthy ~3.2)")
     ctx = f"demand {f['ctx_dem'].values[j]:.0f} %, supply water {f['ctx_tsup'].values[j]:.1f} degC"

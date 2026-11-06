@@ -60,12 +60,21 @@ PARAMS = {
     "close_after_min": 90,      # an episode ends after this many quiet minutes
     "reminder_h": 0.0,          # 0 = no reminders
     "gap_min": 3,
-    "stuck_min": 20, "stuck_sparse_samples": 9,
+    "stuck_min": 20, "stuck_sparse_samples": 9, "stuck_nat_mult": 1.5,
     "noise_ratio": 3.0, "noise_persist": 8,
     "crest_abs": 3.75,          # fleet prior: healthy crest factor ~3.2 (bearing damage / cavitation raise it)
     "rx_env": (0.0, 0.025),     # plausible calibration bias of measured / physics speed ratio - 1
     "hr_env": (-0.03, 0.03),
     "single_ratio": 0.25,
+    "k_strong": 18.0,           # very strong deviations count after 3 min
+    "cav_ps_z": 6.0,
+    "sensor_margin": 4.0,       # a single-instrument explanation must beat the best machine signature by this chi2 margin
+    "unexplained": 0.6,
+    "air_hs": 2.0, "air_lvl": 1.6,
+    "post_maint_min": 720,
+    "step_rise_min": 20,
+    "ref_span": 360,            # slow reference used to isolate escalations on top of an ongoing hydraulic fault
+    "no_drift_ch": ("wt", "tf"),     # thermal channels with strong unmodelled dynamics: no single-channel drift calls
     "cal_inflate_min": 360,     # residual scale x sqrt(1 + 360 / calibration minutes): early fits are uncertain
     "settle_min": {"bt": 90, "wt": 150, "tf": 20},   # thermal channels need time after a start to settle
     "close_after_type": {"CAVITATION": 25, "AIR_ENTRAINMENT": 25},
@@ -211,6 +220,105 @@ def physics_columns(f: pd.DataFrame, a: pd.Series) -> pd.DataFrame:
     return f
 
 
+# Profile-level system constants (public fleet configuration / TECHNICAL_MODEL.md): suction loss at design flow [m],
+# strainer share of it, control-valve share of the design resistance and its design opening, loop pressurisation [kPa],
+# suction static head [m] where no level is measured, salinity [PSU]. Unknown profiles fall back to generic values.
+PROFILE = {
+    "SHIP_SW_COOLING": dict(sl=0.9, ss=0.65, vs=0.15, vd=0.90, p_loop=0.0, zs=4.8, sal=6.0),
+    "SHIP_LT_FRESHWATER": dict(sl=0.6, ss=0.50, vs=0.20, vd=0.85, p_loop=120.0, zs=4.8, sal=0.0),
+    "INDUSTRIAL_CW": dict(sl=0.7, ss=0.60, vs=0.30, vd=0.75, p_loop=0.0, zs=2.5, sal=0.0),
+    "PROCESS_TRANSFER": dict(sl=0.5, ss=0.70, vs=0.35, vd=0.70, p_loop=0.0, zs=2.2, sal=0.0),
+}
+GENERIC_PROFILE = dict(sl=0.7, ss=0.6, vs=0.25, vd=0.8, p_loop=0.0, zs=3.0, sal=0.0)
+
+
+def steady_state(a: pd.Series, dem, tsup, zs, clog=0.05, R=1.0, iw=0.0):
+    """Quasi-steady healthy (or perturbed) operating point from assets.csv + documented control laws.
+
+    Uses only the public physics relations (retrofit_sim.physics); returns expected channel values. Absolute values carry
+    the uncertainty of the profile assumptions; the *differences* between perturbed and healthy states (fault
+    signatures) are robust and are what the diagnosis uses.
+    """
+    from . import physics as ph
+    pr = PROFILE.get(a.profile, GENERIC_PROFILE)
+    dem = np.asarray(dem, dtype=float)
+    tsup = np.asarray(tsup, dtype=float)
+    Qb = a.pump_rated_flow_m3_h / 3600.0
+    Hb = a.pump_rated_head_m
+    h0 = a.pump_shutoff_head_m / Hb
+    Hst = a.static_head_m
+    Qd = a.design_flow_m3_h / 3600.0
+    Hd = a.design_head_m
+    Kd = (Hd - Hst) / Qd ** 2
+    K_vfull = Kd * pr["vs"] * (50.0 ** (pr["vd"] - 1.0)) ** 2
+    K_s0 = pr["sl"] / Qd ** 2
+    K_s = K_s0 * (1.0 + pr["ss"] * ((1.0 + clog) ** 2 - 1.0))
+    K_pipe = max(Kd * (1.0 - pr["vs"]) - K_s0, 0.1 * Kd) * R
+    hf = 1.0 - iw
+    rmin = a.min_speed_ratio if not pd.isna(a.min_speed_ratio) else 0.5
+    ctrl = a.control
+    n = len(dem)
+    vp = np.full(n, pr["vd"])
+    if ctrl == "VFD_TEMPERATURE":
+        need = dem * (36.0 - 25.0) / np.maximum(36.0 - tsup, 3.0)
+        q_req = np.clip(need, 0.40, 1.15) * Qd
+        K_tot = K_pipe + ph.valve_K(vp, K_vfull) + K_s
+        r = np.clip(ph.speed_for_flow(q_req, Hb, Qb, h0, Hst, K_tot, hf), rmin, 1.0)
+    elif ctrl == "VFD_PRESSURE":
+        vp = np.clip(0.35 + 0.65 * dem, 0.2, 1.0)
+        dp = 0.85 * Hd
+        K_tot = K_pipe + ph.valve_K(vp, K_vfull) + K_s
+        Q2 = np.maximum(dp - Hst, 0.1) / K_tot
+        r = np.clip(np.sqrt((dp + Hb * hf * (h0 - 1) / Qb ** 2 * Q2) / (Hb * h0 * hf)), rmin, 1.0)
+    elif ctrl == "FLOW_VALVE":
+        q_sp = np.clip(dem, 0.2, 1.1) * Qd
+        r = np.ones(n)
+        K_needed = (Hb * h0 * hf - Hst) / np.maximum(q_sp, 1e-4) ** 2 - Hb * (h0 - 1) * hf / Qb ** 2 - K_pipe - K_s
+        rel = np.sqrt(K_vfull / np.maximum(K_needed, 1e-6))
+        vp = np.clip(1.0 + np.log(np.clip(rel, 1e-3, 1.0)) / np.log(50.0), 0.05, 1.0)
+    else:
+        r = np.ones(n)
+    K_tot = K_pipe + ph.valve_K(vp, K_vfull) + K_s
+    Q = ph.solve_operating_point(r, Hb, Qb, h0, Hst, K_tot, hf)
+    H = ph.pump_head(Q, r, Hb, Qb, h0, hf)
+    rho = ph.water_density(tsup, pr["sal"])
+    A_s = Qb / 2.5
+    ps = (pr["p_loop"] * 1000.0 + rho * G * (zs - K_s * Q ** 2) - 0.5 * rho * (Q / A_s) ** 2) / 1000.0
+    pdis = ps + rho * G * H / 1000.0
+    eta = getattr(a, "pump_bep_efficiency", 0.8)
+    P_sh = ph.shaft_power(Q, H, r, Qb, Hb, eta, h0, rho, hf)
+    pf = 0.86
+    eff = float(np.clip(a.motor_rated_kw * 1000.0 / (np.sqrt(3) * a.supply_voltage_v * a.motor_rated_current_a * pf), 0.85, 0.97))
+    P_in, _, _, I, _ = ph.motor_electrical(P_sh, a.motor_rated_kw * 1000.0, eff, pf, a.supply_voltage_v,
+                                           0.35, 0.97 if ctrl.startswith("VFD") else None)
+    return {"r": r, "n": r * a.motor_rated_rpm, "q": Q * 3600.0, "ps": ps, "pd": pdis, "pw": P_in / 1000.0, "i": I,
+            "vp": vp * 100.0, "hr": np.full(n, hf - 1.0)}
+
+
+SIG_FAULTS = {"SUCTION_STRAINER_CLOGGING": dict(clog=1.0), "DISCHARGE_RESTRICTION": dict(R=1.3),
+              "IMPELLER_WEAR": dict(iw=0.05)}
+
+
+def physics_signatures(f: pd.DataFrame, a: pd.Series) -> None:
+    """Per-minute expected change of every hydraulic channel for a small clog / restriction / impeller wear."""
+    pr = PROFILE.get(a.profile, GENERIC_PROFILE)
+    dem = np.clip(np.nan_to_num(f["ctx_dem"].values, nan=70.0) / 100.0, 0.05, 1.3)
+    if a.control in ("FIXED_SPEED",):
+        dem = np.full(len(f), 0.8)
+    tsup = np.nan_to_num(f["ctx_tsup"].values, nan=np.nanmedian(f["ctx_tsup"].values))
+    lvl = f["ctx_lvl"].values
+    zs = np.where(np.isfinite(lvl), lvl, pr["zs"])
+    base = steady_state(a, dem, tsup, zs)
+    for k in ("n", "q", "ps", "pd", "pw", "i", "vp"):
+        f["ph_" + k] = base[k]
+    r_exp = np.where(np.isfinite(f["r_exp"].values), f["r_exp"].values, base["r"])
+    for name, kw in SIG_FAULTS.items():
+        st = steady_state(a, dem, tsup, zs, **kw)
+        for k in ("n", "q", "ps", "pd", "pw", "i", "vp", "hr"):
+            f[f"sig_{name}_{k}"] = st[k] - base[k] if k != "hr" else st[k]
+        f[f"sig_{name}_rx"] = (st["r"] - base["r"]) / np.maximum(r_exp, 0.3)
+
+
 # ----------------------------------------------------------------------------------------------- context residuals
 def _design(f: pd.DataFrame, k: str, ctrl: str) -> np.ndarray:
     u = f["u"].values
@@ -327,6 +435,7 @@ def residual_z(f: pd.DataFrame, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
             z[f["since_start"].values < P["settle_min"][k]] = np.nan
         f["z_" + k] = z
         f["e_" + k] = x - pred          # residual in engineering units (for evidence text)
+        f["s_" + k] = scale_eff
         f["x_" + k] = x
     return f, channels
 
@@ -477,13 +586,17 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         # stuck: identical consecutive values while running
         if sparse:
             stuck_flag = np.zeros(n, dtype=bool)
-            last, same, last_j = None, 0, -1
+            last, same, last_j, nat = None, 0, -1, 0
+            cal_end = int(P["cal_hours"] * 60)
             for j in range(n):
                 v = mean[j]
                 if not np.isnan(v):
                     same = same + 1 if (last is not None and v == last) else 1
                     last, last_j = v, j
-                stuck_flag[j] = run[j] and same >= P["stuck_sparse_samples"] and j - last_j <= 10
+                    if j < cal_end and run[j]:
+                        nat = max(nat, same)       # longest natural constant run seen during calibration
+                thr = max(P["stuck_sparse_samples"], int(np.ceil(P["stuck_nat_mult"] * nat)))
+                stuck_flag[j] = run[j] and same >= thr and j - last_j <= 10 and not np.isnan(mean[last_j] if last_j >= 0 else np.nan)
         else:
             sd = f[col + "__std"].values
             mx, mn = f[col + "__max"].values, f[col + "__min"].values
@@ -496,7 +609,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
             sensor_open[k][j] |= trk.open
             if ft:
                 alerts.append((j, _cfg_alert(a, None, "SENSOR", "SENSOR_STUCK", 0.85,
-                                             f"{NAME[k]} ({col}) frozen at {mean[j]:.2f} while the pump runs and coupled "
+                                             f"{NAME[k]} ({col}) frozen at {_last_valid(mean, j):.2f} while the pump runs and coupled "
                                              f"channels vary.", ACTIONS["SENSOR_STUCK"])))
         # noise / spikes (dense channels only): 1-min std far above its calibration level, coupled channels calm
         if not sparse and col + "__std" in f:
@@ -525,85 +638,169 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
                                                  f"{NAME[k]} ({col}) 1-min scatter {rr[j]:.1f}x its normal level; coupled "
                                                  f"channels steady.", ACTIONS["SENSOR_NOISE_SPIKES"])))
 
-    # ---------------- single-channel drift / calibration shift
-    for k in [c for c in SENSOR_CH if c in channels]:
-        cpl = [c for c in COUPLED.get(k, []) if c in channels]
-        if not cpl:
-            continue
-        cmax = np.max(np.vstack([np.abs(np.nan_to_num(zmag[c])) for c in cpl]), axis=0)
-        single = act[k] & (cmax < P["single_ratio"] * np.abs(zmag[k])) & (cmax < 2.5)
-        trk = Track("single_" + k, P, P["close_sensor_min"])
-        for j in range(n):
-            ftype = _step_or_ramp(Z[k], j) if single[j] else None
-            ft = trk.step(j, bool(single[j]), ftype, bool(steady[j]))
-            sensor_open[k][j] |= trk.open
-            if ft:
-                alerts.append((j, _cfg_alert(a, None, "SENSOR", ft, 0.7,
-                                             f"{NAME[k]} ({CH[k]}) deviates alone: {f['e_' + k].values[j]:+.2f} from the "
-                                             f"context-expected value (z={zmag[k][j]:+.1f}); physically coupled channels "
-                                             f"({', '.join(cpl[:4])}) are normal.", ACTIONS[ft])))
-
-    # ---------------- machine detectors
-    def zget(k, j, src=None):
-        src = src or zmag
-        if k not in channels:
-            return 0.0
-        if sensor_open.get(k) is not None and sensor_open[k][j]:
-            return 0.0
-        v = src[k][j]
-        return 0.0 if np.isnan(v) else float(v)
-
+    # ---------------- main loop: hydraulic signature diagnosis, single-channel instrument faults, machine tracks
+    ZC = {k: ewm_seg(np.where(steady, Z[k], np.nan), 15, reset) for k in channels}
+    strong = {k: _persist(steady & (np.abs(ZF[k]) > P["k_strong"]), 3) for k in channels}
+    for k in channels:
+        act[k] = act[k] | strong[k]
+    hyd_ch = [c for c in HYD if c in channels and not (c == "n" and "rx" in channels)]
+    sig_ch = [c for c in hyd_ch if f"sig_SUCTION_STRAINER_CLOGGING_{c}" in f]
+    other_sensor = [c for c in SENSOR_CH if c in channels and c not in hyd_ch and c not in P["no_drift_ch"]]
+    single_trk = {k: Track("single_" + k, P, P["close_sensor_min"]) for k in hyd_ch + other_sensor if k in SENSOR_CH or k == "rx"}
+    sig = {name: {k: f[f"sig_{name}_{k}"].values for k in sig_ch} for name in SIG_FAULTS}
+    scl = {k: f["s_" + k].values for k in channels}
     crest = f[CH["c"] + "__mean"].values if CH["c"] + "__mean" in f else np.full(n, np.nan)
     crest_s = ewm_seg(np.where(steady, crest, np.nan), 30, reset) if not np.all(np.isnan(crest)) else np.full(n, np.nan)
     since_lock = f["since_lockout"].values
-    hyd_ch = [c for c in HYD if c in channels]
-    vib_ch = [c for c in VIB if c in channels]
-
     cm = P["close_machine_min"]
     trk_b = Track("bearing", P, cm)
     trk_v = Track("velocity", P, cm)
     trk_h = Track("hydraulic", P, cm)
+    zc_hist = {k: ZC[k] for k in channels}
+    ZL = {k: ewm_seg(np.where(steady, Z[k], np.nan), P["ref_span"], reset) for k in channels}
+    labels = np.array([None] * n, dtype=object)
+
+    def zget(k, j, src):
+        if k not in src or sensor_open.get(k, np.zeros(n, bool))[j]:
+            return 0.0
+        v = src[k][j]
+        return 0.0 if np.isnan(v) else float(v)
+
     for j in range(n):
         if not steady[j]:
-            trk_b.step(j, False, None, False)
-            trk_v.step(j, False, None, False)
-            trk_h.step(j, False, None, False)
+            for tk in list(single_trk.values()) + [trk_b, trk_v, trk_h]:
+                tk.step(j, False, None, False)
             continue
-        zz = {k: zget(k, j) for k in channels}
-        active = {k for k in channels if act[k][j] and not sensor_open[k][j] if k in sensor_open} | \
-                 {k for k in channels if act[k][j] and k not in sensor_open}
+        zz = {k: zget(k, j, zmag) for k in channels}
+        zc = {k: zget(k, j, ZC) for k in channels}
+        active = {k for k in channels if act[k][j] and not sensor_open.get(k, np.zeros(n, bool))[j]}
         hyd_active = [k for k in hyd_ch if k in active]
-        # bearing: acceleration / crest factor (fleet crest prior catches damage present at window start)
+        # --- hydraulic diagnosis by physics signatures (or a single instrument)
+        lab = None
+        if hyd_active:
+            if trk_h.open and trk_h.any_alert:
+                # an alerted hydraulic problem is ongoing: diagnose only the change on top of it (escalation)
+                dzc = {k: zc[k] - _lag(ZL[k], j, 30) for k in zc}
+                dzz = {k: zz[k] - _lag(ZL[k], j, 30) for k in zz}
+                lab = _classify_hyd(dzc, dzz, sig_ch, hyd_ch, sig, scl, j, f, a.control, P, escalation_only=True)
+            else:
+                lab = _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, a.control, P)
+        labels[j] = lab
+        # --- single-channel instrument faults (hydraulic channels via the classifier, others via coupling)
+        for k, tk in single_trk.items():
+            if k in hyd_ch:
+                single = bool(act[k][j]) and lab == "SENSOR:" + k
+            else:
+                cpl = [c for c in COUPLED.get(k, []) if c in channels]
+                cmax = max([abs(zz.get(c, 0.0)) for c in cpl] + [0.0])
+                dz = abs(zc[k] - _lag(zc_hist[k], j, 240))
+                dc = max([abs(zc[c] - _lag(zc_hist[c], j, 240)) for c in cpl] + [0.0])
+                single = bool(act[k][j]) and ((cmax < P["single_ratio"] * abs(zz[k]) and cmax < 2.5) or
+                                              (dz > P["k_slow"] and dc < P["single_ratio"] * dz and dc < 2.0))
+            ftype = _step_or_ramp(ZF[k], j, P) if single else None
+            ft = tk.step(j, single, ftype, True)
+            if k in sensor_open:
+                sensor_open[k][j] |= tk.open and tk.any_alert
+            if ft:
+                kk = k if k != "rx" else "n"
+                alerts.append((j, _cfg_alert(a, None, "SENSOR", ft, 0.7,
+                                             f"{NAME[k]} deviates alone: {ES[k][j]:+.2f} from the context-expected value "
+                                             f"(z={zz[k]:+.1f}); the physically coupled channels do not show the change a real "
+                                             f"machine fault would cause. Pattern: {'step change' if ft == 'SENSOR_CALIBRATION_SHIFT' else 'gradual ramp'}.",
+                                             ACTIONS[ft].replace("the transmitter", f"the {NAME[kk]} transmitter"))))
+        # --- bearing: acceleration / crest factor (fleet crest prior catches damage present at window start)
         crest_hi = (not np.isnan(crest_s[j])) and crest_s[j] > P["crest_abs"]
         brg = (("a" in active and zz.get("a", 0) > 0) or ("c" in active and zz.get("c", 0) > 0) or crest_hi)
-        cav_like = (zz.get("ps", 0) < -P["k_slow"] or len(hyd_active) >= 2) and zz.get("a", 0) > 0
-        b_type = None
-        if brg and not cav_like:
-            b_type = "BEARING_WEAR"
+        cav_now = lab in ("CAVITATION", "AIR_ENTRAINMENT")
+        b_type = "BEARING_WEAR" if brg and not cav_now and not (zz.get("v", 0) > 2 * max(zz.get("a", 0), 0.1) and not crest_hi) else None
         e = trk_b.step(j, b_type is not None, b_type)
         if e:
             alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.75, _evidence(f, j, ["a", "c", "bt", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))
-        # velocity family: imbalance / misalignment (bearing late stage is attributed to the bearing track)
+        # --- velocity family: imbalance / misalignment; a bearing in late stage raises acceleration much more than velocity
         v_up = "v" in active and zz.get("v", 0) > 0
         v_type = None
-        if v_up and not cav_like and not trk_b.open:
-            mis = (zz.get("bt", 0) > 1.5 or zz.get("wt", 0) > 1.5 or since_lock[j] < 12 * 60
-                   or _step_or_ramp(Z["v"], j) == "SENSOR_CALIBRATION_SHIFT")
-            v_type = "MISALIGNMENT" if mis else "IMBALANCE"
+        if v_up and not cav_now and not (lab is not None and lab.startswith(("SUCTION", "DISCHARGE"))):
+            brg_explains = trk_b.open and zz.get("a", 0) > 0.5 * zz.get("v", 0)
+            if not brg_explains:
+                mis = (zz.get("bt", 0) > 1.5 or zz.get("wt", 0) > 1.5 or since_lock[j] < P["post_maint_min"]
+                       or _step_or_ramp(ZF["v"], j, P) == "SENSOR_CALIBRATION_SHIFT")
+                v_type = "MISALIGNMENT" if mis else "IMBALANCE"
         e = trk_v.step(j, v_type is not None, v_type)
         if e:
             alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES),
                                          ACTIONS[e])))
-        # hydraulic family
-        h_type = None
-        if hyd_active:
-            h_type = _hyd_diagnose(zz, a.control, f, j)
+        # --- hydraulic machine track
+        h_type = lab if (lab is not None and not lab.startswith("SENSOR:")) else None
         e = trk_h.step(j, h_type is not None, h_type)
         if e:
             alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))
     return _finalize(alerts, f, a)
+
+
+def _last_valid(x: np.ndarray, j: int) -> float:
+    v = x[:j + 1][~np.isnan(x[:j + 1])]
+    return float(v[-1]) if len(v) else float("nan")
+
+
+def _lag(x: np.ndarray, j: int, lag: int) -> float:
+    v = x[j - lag] if j - lag >= 0 else np.nan
+    return 0.0 if np.isnan(v) else float(v)
+
+
+def _classify_hyd(zc, zz, sig_ch, hyd_ch, sig, scl, j, f, ctrl, P, escalation_only=False):
+    """Best explanation of the hydraulic residual vector: a physics fault signature, or one instrument alone."""
+    chans = [k for k in hyd_ch if not np.isnan(scl[k][j])]
+    if not chans:
+        return None
+    z = np.array([zc[k] for k in chans])
+    nz = float(z @ z)
+    if nz < 1e-6:
+        return None
+    g = lambda k: zc.get(k, 0.0)
+    q = lambda k: zz.get(k, 0.0)
+    k3 = 3.0
+    # episodic hydraulic faults first (fast residuals: episodes can be short)
+    vib = q("a") > k3 or q("v") > k3
+    head_low = q("hr") < -k3 or q("pd") < -k3
+    if q("ps") < -P["cav_ps_z"] and vib and head_low:
+        return "CAVITATION"
+    if escalation_only and nz < P["k_slow"] ** 2:
+        return None
+    best, best_res = None, nz
+    fits = {}
+    for name, sg in sig.items():
+        s = np.array([sg[k][j] / scl[k][j] if k in sg else 0.0 for k in chans])
+        ss = float(s @ s)
+        if ss < 1e-6:
+            continue
+        alpha = float(z @ s) / ss
+        res = nz - alpha * float(z @ s) if alpha > 0 else nz
+        fits[name] = res
+        if res < best_res:
+            best, best_res = name, res
+    # one instrument alone (either sign)
+    sens_k = max(chans, key=lambda k: abs(g(k)))
+    sens_res = nz - g(sens_k) ** 2
+    if (sens_k in SENSOR_CH or sens_k == "rx") and not escalation_only:
+        if (best is None or sens_res + P["sensor_margin"] < best_res) and sens_res < 0.35 * nz:
+            return "SENSOR:" + sens_k
+    if escalation_only:
+        if best == "IMPELLER_WEAR" and best_res < P["unexplained"] * nz:
+            hs, lvl = f["ctx_hs"].values[j], f["ctx_lvl"].values[j]
+            if ((not np.isnan(hs)) and hs > P["air_hs"]) or ((not np.isnan(lvl)) and lvl < P["air_lvl"]) or vib:
+                return "AIR_ENTRAINMENT"
+        return None
+    if best is None or best_res > P["unexplained"] * nz:
+        return "UNKNOWN"
+    if best == "IMPELLER_WEAR":
+        hs, lvl = f["ctx_hs"].values[j], f["ctx_lvl"].values[j]
+        weather = (not np.isnan(hs)) and hs > P["air_hs"]
+        low_level = (not np.isnan(lvl)) and lvl < P["air_lvl"]
+        if weather or low_level or vib:
+            return "AIR_ENTRAINMENT"
+    return best
 
 
 def _causal_ref(sd: np.ndarray, steady: np.ndarray, P: dict) -> np.ndarray:
@@ -622,24 +819,23 @@ def _causal_ref(sd: np.ndarray, steady: np.ndarray, P: dict) -> np.ndarray:
     return out
 
 
-def _step_or_ramp(z: np.ndarray, j: int) -> str:
-    """Calibration step (abrupt) vs drift (gradual) from the residual history up to j."""
-    if j < 30 or np.isnan(z[j]):
-        return "SENSOR_DRIFT"
-    now = np.nanmean(z[max(0, j - 4):j + 1])
-    past = z[max(0, j - 240):max(1, j - 20)]
-    if np.all(np.isnan(past)):
+def _step_or_ramp(zf: np.ndarray, j: int, P: dict) -> str:
+    """Calibration step (abrupt) vs drift (gradual): how long the 5-min smoothed residual took to climb from normal
+    (|z| < 1.5) to 70 % of its current level."""
+    if j < 5:
         return "SENSOR_CALIBRATION_SHIFT"
-    # fraction of the current deviation already present 20-30 min ago
-    recent = np.nanmean(z[max(0, j - 30):max(1, j - 20)]) if np.any(~np.isnan(z[max(0, j - 30):max(1, j - 20)])) else 0.0
-    older = np.nanmean(z[max(0, j - 240):max(1, j - 180)]) if np.any(~np.isnan(z[max(0, j - 240):max(1, j - 180)])) else 0.0
+    now = zf[j]
     if abs(now) < 1e-6:
         return "SENSOR_DRIFT"
-    if abs(older / now) < 0.3 and abs(recent / now) > 0.7:
-        return "SENSOR_CALIBRATION_SHIFT"      # was normal a few hours ago and already at today's level 20 min ago
-    if abs(recent / now) < 0.4:
-        return "SENSOR_CALIBRATION_SHIFT"      # jumped within the last 20 min
-    return "SENSOR_DRIFT"
+    i = j
+    lo = max(0, j - 24 * 60)
+    while i > lo and abs(zf[i]) > 0.7 * abs(now):
+        i -= 1
+    i_hi = i
+    while i > lo and abs(zf[i]) > 1.5:
+        i -= 1
+    rise = i_hi - i
+    return "SENSOR_CALIBRATION_SHIFT" if rise <= P["step_rise_min"] else "SENSOR_DRIFT"
 
 
 def _hyd_diagnose(z: dict, ctrl: str, f: pd.DataFrame, j: int) -> str:
@@ -736,6 +932,7 @@ def prepare_asset(inputs: dict, a: pd.Series, P: dict) -> tuple[pd.DataFrame, li
     f["steady"] = f["since_start"].values >= P["steady_min"]
     f["since_lockout"] = _since(mode == "LOCKED_OUT")
     f = physics_columns(f, a)
+    physics_signatures(f, a)
     f, channels = residual_z(f, a, P)
     return f, channels
 

@@ -55,7 +55,7 @@ PARAMS = {
     "steady_min": 15,           # minutes after a start before a minute counts as steady
     "k_fast": 6.0, "persist_fast": 10,
     "k_slow": 3.5, "persist_slow": 30, "slow_span": 60,
-    "stable_min": 10,           # diagnosed type must be stable this long before the first alert
+    "stable_min": 20,           # diagnosed type must be stable this long before the first alert
     "max_wait_min": 60,
     "close_after_min": 90,      # an episode ends after this many quiet minutes
     "reminder_h": 0.0,          # 0 = no reminders
@@ -73,6 +73,7 @@ PARAMS = {
     "air_hs": 2.0, "air_lvl": 1.6,
     "post_maint_min": 720,
     "step_rise_min": 20,
+    "machine_realert_min": 1440,
     "lockout_reset_min": 10 ** 9, "sensor_realert_min": 720,   # lockout reset tested: hurts (routine lockouts)
     "snap_valid_min": 270, "snap_env": 4.5, "snap_v2": 0.55, "snap_r21": 0.9, "snap_v1": 1.1,
     "abs_scale_fixed": {"i": 0.012, "pw": 0.015, "pd": 0.012, "q": 0.02},   # fleet uncertainty of absolute physics
@@ -564,7 +565,8 @@ class Track:
                 cand = vals[np.argmax(cnt)]
             if cand is not None and self.any_alert and self.escalate_only and cand not in P["escalation_types"]:
                 cand = None
-            if cand is not None and self.realert_min and j - self.last_alert_of.get(cand, -10 ** 9) < self.realert_min:
+            if cand is not None and self.realert_min and cand not in P["escalation_types"] and \
+                    j - self.last_alert_of.get(cand, -10 ** 9) < self.realert_min:
                 cand = None
             if cand is not None and cand not in self.type_alerted and not (cand == "UNKNOWN" and self.any_alert):
                 emit = cand
@@ -692,9 +694,10 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     crest_s = ewm_seg(np.where(steady, crest, np.nan), 30, reset) if not np.all(np.isnan(crest)) else np.full(n, np.nan)
     since_lock = f["since_lockout"].values
     cm = P["close_machine_min"]
-    trk_b = Track("bearing", P, cm)
-    trk_v = Track("velocity", P, cm)
-    trk_h = Track("hydraulic", P, cm)
+    rm = P["machine_realert_min"]
+    trk_b = Track("bearing", P, cm, realert_min=rm)
+    trk_v = Track("velocity", P, cm, realert_min=rm)
+    trk_h = Track("hydraulic", P, cm, realert_min=rm)
     zc_hist = {k: ZC[k] for k in channels}
     # absolute physics residuals (fleet prior): catch hydraulic faults already present at window start
     vfd = a.control.startswith("VFD")
@@ -707,7 +710,7 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         ZA[k] = ewm_seg(np.where(steady, rel / abs_sc[k], np.nan), 30, reset)
     sigA = {name: {k: f[f"sig_{name}_{k}"].values / (np.maximum(np.abs(f["ph_" + k].values), 1e-6) * abs_sc[k])
                    for k in abs_ch} for name in SIG_FAULTS}
-    trk_a = Track("absolute", P, P["close_machine_min"])
+    trk_a = Track("absolute", P, P["close_machine_min"], realert_min=P["machine_realert_min"])
     # vibration snapshots (every ~4 h): latest snapshot taken before the end of minute j
     sf = snapshot_features(snaps, a)
     snap_idx = np.full(n, -1)

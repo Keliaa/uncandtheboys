@@ -1,0 +1,82 @@
+{
+ "cal_hours": 24.0,
+ "min_cal_min": 90,
+ "refit_every_min": 60,
+ "steady_min": 15,
+ "k_fast": 6.0,
+ "persist_fast": 10,
+ "k_slow": 3.5,
+ "persist_slow": 30,
+ "slow_span": 60,
+ "stable_min": 20,
+ "max_wait_min": 60,
+ "close_after_min": 90,
+ "reminder_h": 0.0,
+ "gap_min": 3,
+ "stuck_min": 20,
+ "stuck_sparse_samples": 9,
+ "stuck_nat_mult": 1.5,
+ "noise_ratio": 3.0,
+ "noise_persist": 8,
+ "crest_abs": 3.75,
+ "rx_env": [
+  0.0,
+  0.025
+ ],
+ "hr_env": [
+  -0.03,
+  0.03
+ ],
+ "single_ratio": 0.25,
+ "k_strong": 18.0,
+ "cav_ps_z": 6.0,
+ "sensor_margin": 4.0,
+ "unexplained": 0.6,
+ "air_hs": 2.0,
+ "air_lvl": 1.6,
+ "post_maint_min": 720,
+ "step_rise_min": 20,
+ "machine_realert_min": 1440,
+ "lockout_reset_min": 1000000000,
+ "sensor_realert_min": 720,
+ "snap_valid_min": 270,
+ "snap_env": 4.5,
+ "snap_v2": 0.55,
+ "snap_r21": 0.9,
+ "snap_v1": 1.1,
+ "abs_scale_fixed": {
+  "i": 0.012,
+  "pw": 0.015,
+  "pd": 0.012,
+  "q": 0.02
+ },
+ "abs_scale_vfd": {
+  "i": 0.04,
+  "pw": 0.04,
+  "pd": 0.025,
+  "q": 0.03
+ },
+ "k_abs": 3.5,
+ "abs_unexplained": 0.3,
+ "ref_span": 360,
+ "no_drift_ch": [
+  "wt",
+  "tf"
+ ],
+ "cal_inflate_min": 360,
+ "settle_min": {
+  "bt": 90,
+  "wt": 150,
+  "tf": 20
+ },
+ "close_after_type": {
+  "CAVITATION": 25,
+  "AIR_ENTRAINMENT": 25
+ },
+ "escalation_types": [
+  "CAVITATION",
+  "AIR_ENTRAINMENT"
+ ],
+ "close_machine_min": 720,
+ "close_sensor_min": 240
+}

@@ -73,6 +73,9 @@ PARAMS = {
     "air_hs": 2.0, "air_lvl": 1.6,
     "post_maint_min": 720,
     "step_rise_min": 20,
+    "abs_scale_fixed": {"i": 0.012, "pw": 0.015, "pd": 0.012, "q": 0.02},   # fleet uncertainty of absolute physics
+    "abs_scale_vfd": {"i": 0.04, "pw": 0.04, "pd": 0.025, "q": 0.03},
+    "k_abs": 3.5, "abs_unexplained": 0.3,
     "ref_span": 360,            # slow reference used to isolate escalations on top of an ongoing hydraulic fault
     "no_drift_ch": ("wt", "tf"),     # thermal channels with strong unmodelled dynamics: no single-channel drift calls
     "cal_inflate_min": 360,     # residual scale x sqrt(1 + 360 / calibration minutes): early fits are uncertain
@@ -657,6 +660,18 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
     trk_v = Track("velocity", P, cm)
     trk_h = Track("hydraulic", P, cm)
     zc_hist = {k: ZC[k] for k in channels}
+    # absolute physics residuals (fleet prior): catch hydraulic faults already present at window start
+    vfd = a.control.startswith("VFD")
+    abs_sc = P["abs_scale_vfd"] if vfd else P["abs_scale_fixed"]
+    abs_ch = [k for k in ("i", "pw", "pd", "q") if k in channels and "ph_" + k in f]
+    ZA = {}
+    for k in abs_ch:
+        ph_k = np.abs(f["ph_" + k].values)
+        rel = (f["x_" + k].values - f["ph_" + k].values) / np.maximum(ph_k, 1e-6)
+        ZA[k] = ewm_seg(np.where(steady, rel / abs_sc[k], np.nan), 30, reset)
+    sigA = {name: {k: f[f"sig_{name}_{k}"].values / (np.maximum(np.abs(f["ph_" + k].values), 1e-6) * abs_sc[k])
+                   for k in abs_ch} for name in SIG_FAULTS}
+    trk_a = Track("absolute", P, P["close_machine_min"])
     ZL = {k: ewm_seg(np.where(steady, Z[k], np.nan), P["ref_span"], reset) for k in channels}
     labels = np.array([None] * n, dtype=object)
 
@@ -730,9 +745,35 @@ def detect_asset(f: pd.DataFrame, a: pd.Series, channels: list, P: dict, snaps=N
         if e:
             alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, ["v", "bt", "wt", "a"], zz, crest_s, ES),
                                          ACTIONS[e])))
+        # --- absolute physics track (pre-existing hydraulic faults)
+        a_type = None
+        if abs_ch and not any(sensor_open.get(k, np.zeros(n, bool))[j] for k in abs_ch):
+            za = np.array([0.0 if np.isnan(ZA[k][j]) else ZA[k][j] for k in abs_ch])
+            if np.sum(np.abs(za) > 2.0) >= 2 and np.max(np.abs(za)) > P["k_abs"]:
+                nz = float(za @ za)
+                bestA, resA = None, nz
+                for name, sg in sigA.items():
+                    sv = np.array([sg[k][j] for k in abs_ch])
+                    ss_ = float(sv @ sv)
+                    if ss_ < 1e-9:
+                        continue
+                    al = float(za @ sv) / ss_
+                    res = nz - al * float(za @ sv) if al > 0 else nz
+                    if res < resA:
+                        bestA, resA = name, res
+                if bestA is not None and resA < P["abs_unexplained"] * nz:
+                    a_type = bestA
+        e = trk_a.step(j, a_type is not None, a_type)
+        if e and not (trk_h.open and e in trk_h.type_alerted):
+            ev_txt = "; ".join(f"{NAME[k]} {100 * ZA[k][j] * abs_sc[k]:+.1f}% vs pump/system-curve physics" for k in abs_ch
+                               if not np.isnan(ZA[k][j]))
+            alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.6, ev_txt + f" (expected from assets.csv ratings at "
+                                         f"the current duty; deviation present since the start of monitoring).", ACTIONS[e])))
         # --- hydraulic machine track
         h_type = lab if (lab is not None and not lab.startswith("SENSOR:")) else None
         e = trk_h.step(j, h_type is not None, h_type)
+        if e and trk_a.open and e in trk_a.type_alerted:
+            e = None
         if e:
             alerts.append((j, _cfg_alert(a, None, "MACHINE", e, 0.7, _evidence(f, j, hyd_ch + ["a", "v"], zz, crest_s, ES),
                                          ACTIONS[e])))

@@ -62,6 +62,19 @@ def main():
             st.write(", ".join(f"{t} {p:.0%}" for t, p in a.top_types))
         st.markdown("**Recommended action**")
         st.info(a.recommended_action)
+        w = a.what_if
+        if a.event_class == "MACHINE" and w:
+            st.markdown("**What-if (simulation)**")
+            if "flow_change_pct" in w:
+                st.write(f"Flow: {w['flow_change_pct']:+.1f} % · Risk: {w['risk_before']:.2f} → {w['risk_after']:.2f} · "
+                         f"Cost: approx. {w['cost_eur']:.0f} EUR")
+            if not w["accepted"]:
+                st.warning("Sandbox does not accept this action: " + "; ".join(w["reasons"]))
+            for msg in w["warnings"]:
+                st.caption("⚠ " + msg)
+            with st.expander("Caveats"):
+                for c in w["caveats"]:
+                    st.write("- " + c)
         prev = [d for d in load_decisions() if d["asset_id"] == a.asset_id and d["alert_time_utc"] == a.alert_time_utc]
         if prev:
             st.write(f"Last decision: **{prev[-1]['decision']}**")

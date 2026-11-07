@@ -29,7 +29,7 @@ E02_MODEL = REPO_ROOT / "results" / "e02_model.json"
 
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
-                 d02_limit: float | None = None):
+                 d02_limit: float | None = None, with_what_if: bool = True):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -48,8 +48,11 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         model = GaussianNB.load(E02_MODEL)
         clf = lambda a, z, t: model.predict_proba(z)
     alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf), machine)
-    alerts += physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine)
+    alerts += add_actions(physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine), machine)   # R01 also for D04 alerts
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
+    if with_what_if:
+        from .recommend.whatif import add_what_if
+        alerts = add_what_if(alerts, machine, data)
     alerts.sort(key=lambda a: (a.asset_id, a.alert_time_utc))
     return det, alerts
 

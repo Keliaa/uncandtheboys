@@ -29,7 +29,7 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
-                 d02_limit: float | None = None, with_what_if: bool = True):
+                 d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -42,7 +42,11 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         from .detect.regression import ewma_scores, load_context
         sc = ewma_scores(zf, load_context(sorted(feats.asset_id.unique()), data))
         extra = sc.assign(flag=sc.d02_score > d02_limit)[["asset_id", "window_start_utc", "flag"]]
-    det = detect(feats, assets, DEFAULT_K, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben, extra=extra)
+    if d03_models is not None:     # D03: add PCA/T2 flags (models fitted on healthy train minutes only)
+        from .detect.pca import pca_flags
+        pf = pca_flags(zf, assets, d03_models)[["asset_id", "window_start_utc", "flag"]]
+        extra = pf if extra is None else pd.concat([extra, pf]).groupby(["asset_id", "window_start_utc"], as_index=False).flag.max()
+    det = detect(feats, assets, DEFAULT_K if d01_flags else 1e9, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben, extra=extra)
     from retrofit_sim.baselines import CH
     low = {}
     for aid, idx in zf.groupby('asset_id').groups.items():

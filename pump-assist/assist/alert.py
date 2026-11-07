@@ -44,6 +44,7 @@ class AlertRecord:
     recommended_action: str = ""             # part 4
     what_if: dict[str, Any] | None = None    # part 4, optional
     operator_decision: str | None = None     # part 5
+    z_at_alert: dict[str, float] = field(default_factory=dict)   # z-scores of all channels at the alert minute (for E03 and analysis)
 
     def validate(self) -> None:
         if not self.asset_id:

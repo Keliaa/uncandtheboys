@@ -60,7 +60,8 @@ def rule_scores(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: f
     return scores
 
 
-def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: float) -> dict[str, Any]:
+def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: float,
+             sensor_alone: float = SENSOR_ALONE) -> dict[str, Any]:
     """z: channel name -> z-score at the alert minute. Returns the diagnosis fields of an alert record."""
     dev = {c: v for c, v in z.items() if abs(v) > k}
     dev_text = [Evidence(c, v, _words(c, v)) for c, v in sorted(dev.items(), key=lambda kv: -abs(kv[1]))[:3]]
@@ -82,7 +83,7 @@ def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: floa
     related = machine.get("related_channels", {})
     for c, v in dev.items():
         rel = [r for r in related.get(c, []) if r in z]
-        if rel and max(abs(z[r]) for r in rel) < SENSOR_ALONE * k and len(dev) == 1:
+        if rel and max(abs(z[r]) for r in rel) < sensor_alone * k and len(dev) == 1:
             scores["SENSOR_CALIBRATION_SHIFT"] = min(1.0, abs(v) / (1.5 * k))
             classes["SENSOR_CALIBRATION_SHIFT"] = "SENSOR"
             dev_text = [Evidence(c, v, f"{c.replace('_', ' ')} deviates alone (z = {v:+.1f}); related channels are normal")]

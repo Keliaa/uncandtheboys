@@ -22,6 +22,8 @@
 | + V03 bearing alerts (option, off in frozen system) | validation | 80.074 | 0.857 | 1.0 | 0.75 | 0.214 | 0.863 | 0.556 | 1.0 |
 | + V02 spectral typing (option, off in frozen system) | train | 61.282 | 0.667 | 0.769 | 0.588 | 0.286 | 0.642 | 0.385 | 0.692 |
 | + V02 spectral typing (option, off in frozen system) | validation | 84.709 | 0.9 | 1.0 | 0.818 | 0.143 | 0.863 | 0.667 | 1.0 |
+| + E03 sensor/machine rules + drift-vs-shift typing (frozen system) | train | 64.073 | 0.667 | 0.808 | 0.568 | 0.327 | 0.676 | 0.462 | 0.731 |
+| + E03 sensor/machine rules + drift-vs-shift typing (frozen system) | validation | 85.535 | 0.9 | 1.0 | 0.818 | 0.143 | 0.904 | 0.667 | 1.0 |
 | + T02 after-maintenance alerts (frozen system) | train | 63.111 | 0.667 | 0.808 | 0.568 | 0.327 | 0.676 | 0.423 | 0.731 |
 | + T02 after-maintenance alerts (frozen system) | validation | 85.535 | 0.9 | 1.0 | 0.818 | 0.143 | 0.904 | 0.667 | 1.0 |
 | T01 baseline: static (frozen) | train | 61.78 | 0.678 | 0.769 | 0.606 | 0.265 | 0.642 | 0.385 | 0.692 |

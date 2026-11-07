@@ -107,7 +107,8 @@ def to_alerts(det: pd.DataFrame, refractory: pd.Timedelta = REFRACTORY):
 
 
 def to_alerts_with_rules(det: pd.DataFrame, assets_cfg: dict, machine: dict, k: float = DEFAULT_K,
-                         refractory: pd.Timedelta = REFRACTORY, classifier=None, gate: bool = False):
+                         refractory: pd.Timedelta = REFRACTORY, classifier=None, gate: bool = False,
+                         sensor_alone: float | None = None):
     """Like to_alerts, but E01 gives fault type, confidence, certainty and evidence text.
 
     assets_cfg: asset_id -> assist.config.Asset.
@@ -119,11 +120,11 @@ def to_alerts_with_rules(det: pd.DataFrame, assets_cfg: dict, machine: dict, k: 
         last = {}
         starts = g[g.sustained & ~g.sustained.shift(fill_value=False) & ~g.in_baseline]
         for _, r in starts.iterrows():
-            d = classify(r.z_all, assets_cfg[a], machine, k)
+            d = classify(r.z_all, assets_cfg[a], machine, k, *( [] if sensor_alone is None else [sensor_alone]))
             if classifier is not None and d["event_class"] == "MACHINE":
                 d = apply_classifier(d, classifier(a, r.z_all, r.available_utc), assets_cfg[a], machine, r.z_all, k, gate)
             if d["fault_type"] in last and r.available_utc - last[d["fault_type"]] < refractory:
                 continue
             last[d["fault_type"]] = r.available_utc
-            alerts.append(AlertRecord(asset_id=a, alert_time_utc=r.available_utc.strftime("%Y-%m-%dT%H:%M:%SZ"), **d))
+            alerts.append(AlertRecord(asset_id=a, alert_time_utc=r.available_utc.strftime("%Y-%m-%dT%H:%M:%SZ"), z_at_alert=dict(r.z_all), **d))
     return alerts

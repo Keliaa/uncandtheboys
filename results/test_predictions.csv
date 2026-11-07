@@ -1,0 +1,19 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-10,2025-07-23T15:37:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.7317,suction pressure is low (z = -12.7),Inspect and clean the suction strainer.
+PUMP-10,2025-07-24T04:48:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.7957,suction pressure is low (z = -14.7); motor speed is high (z = +9.9); discharge pressure is low (z = -8.0),Inspect and clean the suction strainer.
+PUMP-11,2026-04-23T09:31:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +8.5),Inspect the pump. Examine the channels in the evidence.
+PUMP-11,2026-04-23T22:24:00Z,MACHINE,UNKNOWN,0.2564,motor power is low (z = -8.7),Inspect the pump. Examine the channels in the evidence.
+PUMP-11,2026-04-25T11:17:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +8.2),Inspect the pump. Examine the channels in the evidence.
+PUMP-11,2026-04-26T11:33:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +10.2),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-25T10:51:00Z,MACHINE,UNKNOWN,0.314,valve position is high (z = +9.0),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-26T01:51:00Z,MACHINE,UNKNOWN,0.2746,valve position is high (z = +8.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-26T20:48:00Z,MACHINE,UNKNOWN,0.3657,suction pressure is low (z = -8.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-26T23:09:00Z,MACHINE,CAVITATION,0.6577,suction pressure is low (z = -13.6); discharge pressure is low (z = -10.1),Examine the suction strainer and the inlet level. Decrease the flow if operation permits.
+PUMP-12,2025-11-27T13:59:00Z,MACHINE,CAVITATION,0.6667,suction pressure is low (z = -19.5); discharge pressure is low (z = -10.4),Examine the suction strainer and the inlet level. Decrease the flow if operation permits.
+PUMP-12,2025-11-28T02:40:00Z,MACHINE,CAVITATION,1.0,vibration accel rms is high (z = +100.2); discharge pressure is low (z = -41.3); vibration rms is high (z = +30.2),Examine the suction strainer and the inlet level. Decrease the flow if operation permits.
+PUMP-12,2025-11-28T07:46:00Z,MACHINE,UNKNOWN,0.3186,valve position is high (z = +9.7),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-29T03:57:00Z,MACHINE,UNKNOWN,0.3221,valve position is high (z = +9.8),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-29T16:22:00Z,MACHINE,UNKNOWN,0.25,vibration crest factor is high (z = +42.7),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-30T04:49:00Z,MACHINE,UNKNOWN,0.25,vibration crest factor is high (z = +58.2),Inspect the pump. Examine the channels in the evidence.
+PUMP-12,2025-11-30T09:31:00Z,MACHINE,BEARING_WEAR,0.5,vibration crest factor is high (z = +59.6),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-12,2025-11-30T21:45:00Z,MACHINE,BEARING_WEAR,0.5,vibration crest factor is high (z = +57.4); vibration accel rms is high (z = +14.3),Inspect the bearing and the lubrication. Plan a bearing replacement.

@@ -1,13 +1,15 @@
 """Filesystem locations. Everything the demo writes stays inside operator-demo/."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 DEMO_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = DEMO_DIR.parent
 BUNDLE_DIR = DEMO_DIR / "bundles"
 STATE_DIR = DEMO_DIR / "state"
-INTERACTION_LOG = STATE_DIR / "interactions.jsonl"
+# OPERATOR_DEMO_LOG lets automated app tests use a separate log file name (still inside state/)
+INTERACTION_LOG = STATE_DIR / Path(os.environ.get("OPERATOR_DEMO_LOG", "interactions.jsonl")).name
 
 # read-only inputs used by the offline preparation step only
 DATA_DIR = REPO_DIR / "data" / "full"

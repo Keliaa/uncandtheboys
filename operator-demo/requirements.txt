@@ -1,0 +1,9 @@
+# operator-demo (presentation + offline preparation). Tested with Python 3.9.6 on macOS.
+# Install once while online; the presentation itself needs no network.
+numpy>=1.26,<2.1
+pandas>=2.1,<2.3
+pyarrow>=14
+scipy>=1.11,<2        # used by the B4 detector during `prepare_demo.py` only
+streamlit>=1.45,<2
+plotly>=5.20,<8
+pytest>=7.4

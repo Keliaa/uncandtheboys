@@ -44,7 +44,7 @@ B4_COLS = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confidenc
 SCENES = [
     {"id": "normal_change", "chapter": 1, "kind": "quiet", "asset": "PUMP-08", "title": "Normal change",
      "question": "Does a normal operating change create a task?", "minutes_per_tick": 2.0,
-     "main_channels": ["pw", "ps", "pd", "n"]},
+     "main_channels": ["bt", "v", "pd", "pw"]},
     {"id": "worth_checking", "chapter": 2, "kind": "alert", "asset": "PUMP-08", "title": "Worth checking",
      "question": "Does a persistent concern produce an understandable check?",
      "alert_time": "2025-09-10T08:23:00Z", "fault_type": "SUCTION_STRAINER_CLOGGING", "lead_min": 45, "tail_min": 20,
@@ -85,6 +85,8 @@ def run_detector(b4, data_dir: Path, asset_id: str, params: dict):
     inp = b4.load_inputs(str(data_dir), [asset_id])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=pd.errors.PerformanceWarning)
+        # numpy matmul floating-point warnings from the ridge fits; output is verified against the frozen CSV
+        warnings.simplefilter("ignore", category=RuntimeWarning)
         pred, frames = b4.run_b4(inp, params, return_frames=True)
     f, channels = frames[asset_id]
     return inp, pred, f, channels

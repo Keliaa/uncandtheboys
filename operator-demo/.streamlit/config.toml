@@ -1,0 +1,22 @@
+# Offline presentation settings: no telemetry, no external requests, local only.
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[server]
+headless = true
+address = "localhost"
+port = 8501
+fileWatcherType = "none"
+runOnSave = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+
+[theme]
+base = "light"
+primaryColor = "#35577a"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f3f6f8"
+textColor = "#1f2a36"

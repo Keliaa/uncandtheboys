@@ -96,7 +96,7 @@ def physics_alerts(det: pd.DataFrame, machine: dict, refractory: pd.Timedelta = 
             p = float(min(0.9, max(0.1, abs(r.ewma_pct) / 20.0)))
             alerts.append(AlertRecord(
                 asset_id=aid, alert_time_utc=r.available_utc.strftime("%Y-%m-%dT%H:%M:%SZ"), event_class="MACHINE",
-                fault_type="IMPELLER_WEAR", probability=p, certainty=certainty_label(p, machine),
+                fault_type="IMPELLER_WEAR", probability=p, certainty=certainty_label(p, machine), source="d04",
                 evidence=[Evidence("discharge_pressure_kpa", float(r.ewma_pct),
                                    f"Head is {abs(r.ewma_pct):.1f} % of rated head below the pump curve")],
                 recommended_action=action_for(machine, "IMPELLER_WEAR")["text"]))

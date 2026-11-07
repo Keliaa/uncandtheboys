@@ -75,5 +75,5 @@ def maintenance_alerts(steps: pd.DataFrame, assets_cfg: dict, machine: dict, ste
         top = sorted(z.items(), key=lambda kv: -abs(kv[1]))[:3]
         d["evidence"] = [Evidence(c, v, f"After the maintenance stop the new baseline of {c.replace('_', ' ')} is {v:+.1f} spreads from the old one")
                          for c, v in top if abs(v) >= step_z] or d["evidence"]
-        alerts.append(AlertRecord(asset_id=r.asset_id, alert_time_utc=r.window_end.strftime("%Y-%m-%dT%H:%M:%SZ"), **d))
+        alerts.append(AlertRecord(asset_id=r.asset_id, alert_time_utc=r.window_end.strftime("%Y-%m-%dT%H:%M:%SZ"), source="t02", **d))
     return alerts

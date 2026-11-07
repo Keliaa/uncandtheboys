@@ -78,7 +78,7 @@ def sensor_alerts(zf: pd.DataFrame, tf: pd.DataFrame, machine: dict, gap_persist
             alerts.append(AlertRecord(
                 asset_id=a, alert_time_utc=when.strftime("%Y-%m-%dT%H:%M:%SZ"), event_class="SENSOR", fault_type=ftype,
                 probability=0.6, certainty="Medium", evidence=[Evidence(ch, 0.0, text)],
-                recommended_action=action_for(machine, ftype)["text"]))
+                recommended_action=action_for(machine, ftype)["text"], source="q01"))
 
         times = g["window_start_utc"].to_numpy()
         for i in np.flatnonzero(t["gap_run"].to_numpy() == gap_persist):

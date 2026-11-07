@@ -33,7 +33,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
                  t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
                  features: pd.DataFrame | None = None, gate=True, regime: str = "speed", d07_models=None, episodes: int | None = 1440, stable_min: int = 1,
-                 ewma: tuple | None = None):
+                 ewma: tuple | None = None, derived_sensor: bool = True):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -109,6 +109,9 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if v02_typing and not orders.empty:
         alerts = spectral_typing(alerts, orders, machine)
     alerts = add_order_evidence(alerts, orders)
+    if derived_sensor:      # B4 idea #6: a head residual that one pressure transmitter explains is a sensor fault, not impeller wear
+        from .evidence.derived import explain_by_transmitter
+        alerts = explain_by_transmitter(alerts, zf, assets, machine)
     if episodes:      # B4 idea: one alert per developing problem (per fault family); value = minutes of steady quiet that close an episode
         from .evidence.episodes import manage_episodes
         alerts = manage_episodes(alerts, det, quiet_min=episodes)

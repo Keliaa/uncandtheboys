@@ -1,5 +1,5 @@
 asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
-PUMP-10,2025-07-23T01:24:00Z,MACHINE,IMPELLER_WEAR,0.1173,Head is 2.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-10,2025-07-23T01:24:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.1173,"The head residual (-2.3 % of rated head) is explained by the suction pressure kpa transmitter alone (it reads +5.6 kPa from its baseline, implying -2.1 %); current, speed, power, flow and the other pressure are normal",Examine the transmitter. Compare it with a reference gauge.
 PUMP-10,2025-07-23T16:48:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -18.1) (changed at 2025-07-23 15:26 UTC); motor current is high (z = +12.7) (changed at 2025-07-23 15:26 UTC); motor power is high (z = +10.0) (changed at 2025-07-23 15:26 UTC),Inspect and clean the suction strainer.
 PUMP-10,2025-07-23T17:08:00Z,MACHINE,IMPELLER_WEAR,0.1779,Head is 3.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-10,2025-07-24T06:19:00Z,MACHINE,IMPELLER_WEAR,0.2801,Head is 5.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.

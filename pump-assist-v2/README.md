@@ -1,6 +1,6 @@
 # Pump assist v2 (ideas from the B4 detector)
 
-Starting point: a copy of `../pump-assist` at its final commit on `exp/practical-worklist` (frozen system 64.1 train / 85.5 validation). This folder tries ideas from `../physics-context-detector` one at a time; see [IDEAS_FROM_B4.md](IDEAS_FROM_B4.md). Run commands from the repository root with `pump-assist-v2/` instead of `pump-assist/`. Results below this heading describe the original system.
+Starting point: a copy of `../pump-assist` at its final commit on `exp/practical-worklist` (frozen system 64.1 train / 85.5 validation). This folder tries ideas from `../physics-context-detector` one at a time; see [IDEAS_FROM_B4.md](IDEAS_FROM_B4.md). Run commands from the repository root with `pump-assist-v2/` instead of `pump-assist/`. Leave-one-pump-out and shadow results: [results/LOPO_REPORT.md](results/LOPO_REPORT.md). Results below this heading describe the original system.
 
 # Pump assist
 

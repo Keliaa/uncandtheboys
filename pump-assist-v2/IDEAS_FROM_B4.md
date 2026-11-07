@@ -14,7 +14,7 @@ splits: settings chosen on train, validation scored once, test pumps never score
 | 4 | Segment-reset smoothing: EWMA resets at stops so scores are not stale after repairs; thermal channels gated 1.5-2.5 h after a start (#2) | +10 (with sub-episodes) | **tried (data-driven EWMA of the z-scores, reset at every non-steady minute), not kept**: spans 10/30/60 with limit 6 -> train 67.0, validation 83.7 (vs 66.1 / 85.5), false alerts up (`assist/detect/smoothing.py`, `ewma=` in the pipeline) |
 | 5 | (partly out) Context regression on physics-required speed, duty, basin level, lagged load (#1, #2) | type recall x2 | the physics-required speed is out; D02 here used duty, temperatures and speed and was neutral |
 | 6 | Absolute physics for pre-existing faults with fleet-level uncertainty (#5) | +1.8 | partly (D04 pump-curve residual; PUMP-03 still missed) |
-| 7 | Derived-channel-aware sensor test: a drifting suction transmitter also moves the computed head ratio (#6) | +1.7 | todo |
+| 7 | Derived-channel-aware sensor test: a drifting suction transmitter also moves the computed head ratio (#6) | +1.7 | **done, on by default**: a head-residual (D04) alert that one pressure transmitter explains, with current, speed, power, flow and the other pressure normal, becomes a SENSOR alert (`assist/evidence/derived.py`). Dev scores unchanged (train 66.1, validation 85.5; leave-one-pump-out mean 70.3 either way), stress +0.3; on PUMP-02 it replaces four wrong IMPELLER_WEAR alerts by the right SENSOR_DRIFT |
 | 8 | Spectral checks with fixed fleet thresholds: BPFO envelope >= 4.5x, 2x >= 0.9x 1x for misalignment (#7) | +1.3 | evidence only here (V01-V03); could become alerts |
 | 9 | Same-type re-alert memory 24 h (#11) | +0.3 | have 12 h per type |
 | 10 | Causality test: truncate the data at random cuts and check that earlier alerts do not change (#8) | proof of causality | **done and passing**: three cuts on PUMP-08, alerts before each cut identical to the full run (`tests/test_causality.py`) |
@@ -55,3 +55,18 @@ patterns. B4's physics signatures avoid this because they come from knowledge of
 ## Next data-driven ideas
 
 Learn the fault signatures from the labelled train events instead of computing them from physics (kNN or logistic regression on residual vectors), learn which channels move together from each pump's own healthy data (instead of the simulator's coupling lists) for the sensor-versus-machine test, calibrate the probabilities, and a leave-one-site-out check of every adopted idea.
+
+## Leave-one-pump-out, shadow comparison and what it says (see results/LOPO_REPORT.md)
+
+Leave-one-pump-out on the nine labelled pumps (B4 picks N on the other eight; v2 picks its limits and trains the naive Bayes model on the other eight):
+B4 93.9, v2 70.3 (identical with and without the derived-channel diagnosis). On three shared stress fleets: B4 87.7, v2 58.9 (58.7 without), B1 52.1.
+Fault-type recall is the gap: 33 of 35 events typed correctly by B4, 15 of 35 by v2.
+
+* **Derived-channel diagnosis first** (done): correct attribution at no cost to the scores.
+* **Qualify diagnoses with operating context** (not done): v2 already reports UNKNOWN when certainty is Low. The next step is an explicit
+  "ambiguous between X and Y" when the top two probabilities are close and the available sensors cannot separate them (for example clogging vs
+  impeller wear on a pump with no flow meter). The signature experiment (cosine, kNN, logistic regression all behind naive Bayes on validation)
+  says to improve the evidence, not the classifier.
+* **Shadow mode** (partly done): the stress-fleet comparison is done. Warning time against the conventional deadline: on the 8 to 11 events that
+  have one, B4 alerts on average at the limit (median lead -0.1 h, 5 of 11 before it) while v2 warns earlier (median +6.2 h, 6 of 8 before it) but finds
+  fewer events (29 of 35 against 34). Still to do: replay real telemetry with `scripts/c03_demo.py` against `maintenance.csv` and operator review.

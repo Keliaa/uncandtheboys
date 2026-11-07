@@ -23,7 +23,10 @@ OPTIONS = {"D01_zscore": "results/d01_trainval_predictions.csv",
            "D03 PCA only (full system otherwise)": "results/d03_only_trainval_predictions.csv",
            "D01 + D03 (option, off in frozen system)": "results/d03_union_trainval_predictions.csv",
            "+ V03 bearing alerts (option, off in frozen system)": "results/v03_trainval_predictions.csv",
-           "+ V02 spectral typing (option, off in frozen system)": "results/v02_trainval_predictions.csv"}
+           "+ V02 spectral typing (option, off in frozen system)": "results/v02_trainval_predictions.csv",
+           "T01 baseline: static (frozen)": "results/t01_static_trainval_predictions.csv",
+           "T01 baseline: always learning": "results/t01_always_trainval_predictions.csv",
+           "T01 baseline: guarded": "results/t01_guarded_trainval_predictions.csv"}
 KEYS = ["composite_score", "event_f1", "event_recall", "alert_precision", "false_alerts_per_asset_day",
         "timeliness", "fault_type_recall", "class_recall"]
 

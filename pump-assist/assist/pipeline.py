@@ -30,13 +30,16 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
-                 v03_alerts: bool = False, v02_typing: bool = False):
+                 v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static"):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
     feats = load_features(asset_ids, data, splits)
     zf = z_frame(feats, assets)
     tf = trust_frame(zf, FLAT_MIN)
+    if baseline != "static":      # T01: online expected values (always learning or guarded)
+        from .detect.baseline import adaptive_z
+        zf = adaptive_z(zf, baseline, trust=tf)
     ben = benign_minutes(sorted(feats.asset_id.unique()), data, tail_min=BENIGN_TAIL, hs_limit=HS_LIMIT)
     extra = None
     if d02_limit is not None:      # D02: add EWMA-of-regression-residual flags to D01

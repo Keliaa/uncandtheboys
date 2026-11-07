@@ -1,0 +1,17 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-02,2025-12-02T02:56:00Z,MACHINE,IMPELLER_WEAR,0.1041,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-02,2025-12-03T21:52:00Z,MACHINE,IMPELLER_WEAR,0.3744,Head is 7.5 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-16T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1435,Head is 2.9 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-18T21:52:00Z,MACHINE,IMPELLER_WEAR,0.1419,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-19T16:25:00Z,MACHINE,IMPELLER_WEAR,0.1417,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-20T15:05:00Z,MACHINE,IMPELLER_WEAR,0.142,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-21T16:20:00Z,MACHINE,IMPELLER_WEAR,0.1418,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-22T11:56:00Z,MACHINE,IMPELLER_WEAR,0.1444,Head is 2.9 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-19T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1049,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-21T02:42:00Z,MACHINE,IMPELLER_WEAR,0.1064,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-23T09:11:00Z,MACHINE,IMPELLER_WEAR,0.1098,Head is 2.2 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-24T13:44:00Z,MACHINE,IMPELLER_WEAR,0.1057,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-25T08:12:00Z,MACHINE,IMPELLER_WEAR,0.1091,Head is 2.2 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-06,2025-10-09T22:26:00Z,MACHINE,IMPELLER_WEAR,0.3392,Head is 6.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-07,2025-05-17T08:54:00Z,MACHINE,IMPELLER_WEAR,0.1138,Head is 2.3 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-09,2026-02-15T08:02:00Z,MACHINE,IMPELLER_WEAR,0.2503,Head is 5.0 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.

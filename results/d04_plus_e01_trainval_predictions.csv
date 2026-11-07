@@ -1,0 +1,54 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-01,2025-08-13T02:19:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7644,suction pressure kpa deviates alone (z = -9.2); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-01,2025-08-13T03:07:00Z,MACHINE,UNKNOWN,0.3642,suction pressure is low (z = -8.7),Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-16T18:06:00Z,MACHINE,CAVITATION,0.5771,suction pressure is low (z = -8.3),Examine the suction strainer and the inlet level. Decrease the flow if operation permits.
+PUMP-01,2025-08-16T20:40:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.6797,suction pressure kpa deviates alone (z = -8.2); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-01,2025-08-16T21:04:00Z,MACHINE,UNKNOWN,0.3473,suction pressure is low (z = -8.3),Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-17T07:37:00Z,MACHINE,CAVITATION,0.6688,suction pressure is low (z = -9.0),Examine the suction strainer and the inlet level. Decrease the flow if operation permits.
+PUMP-01,2025-08-17T09:53:00Z,MACHINE,UNKNOWN,0.3768,suction pressure is low (z = -9.0),Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-17T22:45:00Z,MACHINE,UNKNOWN,0.2494,suction pressure is low (z = -9.0),Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-02T02:56:00Z,MACHINE,IMPELLER_WEAR,0.1041,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-02,2025-12-02T20:02:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7262,suction pressure kpa deviates alone (z = +8.7); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-03T21:52:00Z,MACHINE,IMPELLER_WEAR,0.3744,Head is 7.5 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-02,2025-12-03T22:01:00Z,MACHINE,UNKNOWN,0.3333,motor winding temp is low (z = -21.7); suction pressure is high (z = +19.0); vibration accel rms is high (z = +14.8),Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-06T22:27:00Z,MACHINE,UNKNOWN,0.0,motor winding temp is low (z = -21.8); bearing temp is low (z = -11.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-04T00:03:00Z,MACHINE,DISCHARGE_RESTRICTION,0.8079,discharge pressure is high (z = +10.0); motor current is low (z = -9.3),Examine the discharge valves and the heat exchanger.
+PUMP-03,2026-03-06T08:52:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.6736,discharge pressure kpa deviates alone (z = +8.1); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-03,2026-03-06T20:58:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.6784,discharge pressure kpa deviates alone (z = +8.1); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-03,2026-03-07T10:21:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.6849,discharge pressure kpa deviates alone (z = +8.2); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-03,2026-03-07T23:18:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.6875,discharge pressure kpa deviates alone (z = +8.2); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-16T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1435,Head is 2.9 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-17T02:47:00Z,MACHINE,UNKNOWN,0.3799,flow is low (z = -8.3),Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-17T19:08:00Z,MACHINE,UNKNOWN,0.3646,vibration rms is high (z = +8.8),Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-17T22:01:00Z,MACHINE,MISALIGNMENT,0.4163,vibration rms is high (z = +10.0); vibration accel rms is high (z = +8.0),Examine the coupling alignment.
+PUMP-04,2025-06-18T21:52:00Z,MACHINE,IMPELLER_WEAR,0.1419,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-18T22:01:00Z,MACHINE,BEARING_WEAR,0.5,vibration rms is high (z = +19.3); vibration accel rms is high (z = +17.2); motor winding temp is low (z = -8.4),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-19T16:25:00Z,MACHINE,IMPELLER_WEAR,0.1417,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-19T16:34:00Z,MACHINE,BEARING_WEAR,0.5,vibration rms is high (z = +38.0); vibration accel rms is high (z = +31.3),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-20T15:05:00Z,MACHINE,IMPELLER_WEAR,0.142,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-20T15:14:00Z,MACHINE,BEARING_WEAR,0.5,vibration rms is high (z = +63.8); vibration accel rms is high (z = +50.7); motor winding temp is low (z = -8.1),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-21T16:20:00Z,MACHINE,IMPELLER_WEAR,0.1418,Head is 2.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-21T16:29:00Z,MACHINE,IMBALANCE,1.0,vibration rms is high (z = +47.0); flow is low (z = -17.3); motor speed is low (z = -14.0),Examine the impeller for deposits or damage.
+PUMP-04,2025-06-22T11:56:00Z,MACHINE,IMPELLER_WEAR,0.1444,Head is 2.9 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-22T12:05:00Z,MACHINE,IMBALANCE,1.0,vibration rms is high (z = +58.1); flow is low (z = -11.3); motor speed is low (z = -9.9),Examine the impeller for deposits or damage.
+PUMP-05,2026-01-19T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1049,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-21T02:42:00Z,MACHINE,IMPELLER_WEAR,0.1064,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-23T09:11:00Z,MACHINE,IMPELLER_WEAR,0.1098,Head is 2.2 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-24T13:44:00Z,MACHINE,IMPELLER_WEAR,0.1057,Head is 2.1 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-05,2026-01-25T08:12:00Z,MACHINE,IMPELLER_WEAR,0.1091,Head is 2.2 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-06,2025-10-09T08:05:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.6739,suction pressure is low (z = -8.1),Inspect and clean the suction strainer.
+PUMP-06,2025-10-09T20:29:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.6925,suction pressure is low (z = -8.3),Inspect and clean the suction strainer.
+PUMP-06,2025-10-09T22:26:00Z,MACHINE,IMPELLER_WEAR,0.3392,Head is 6.8 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-06,2025-10-10T09:10:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -21.0); discharge pressure is low (z = -16.8),Inspect and clean the suction strainer.
+PUMP-07,2025-05-14T15:20:00Z,MACHINE,UNKNOWN,0.0,motor winding temp is low (z = -14.1); bearing temp is low (z = -9.3),Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-15T18:02:00Z,MACHINE,UNKNOWN,0.3333,flow is low (z = -22.0); motor winding temp is low (z = -11.9); bearing temp is low (z = -8.8),Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-16T22:53:00Z,MACHINE,UNKNOWN,0.3333,flow is low (z = -21.9); motor winding temp is low (z = -14.1); bearing temp is low (z = -9.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-17T08:54:00Z,MACHINE,IMPELLER_WEAR,0.1138,Head is 2.3 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-07,2025-05-17T15:12:00Z,MACHINE,UNKNOWN,0.0,motor winding temp is low (z = -14.3); bearing temp is low (z = -8.9),Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-18T04:06:00Z,MACHINE,UNKNOWN,0.1631,motor winding temp is low (z = -14.8); bearing temp is low (z = -10.4),Inspect the pump. Examine the channels in the evidence.
+PUMP-08,2025-09-10T18:17:00Z,MACHINE,UNKNOWN,0.3511,suction pressure is low (z = -8.4),Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-10T06:23:00Z,MACHINE,IMBALANCE,0.8519,vibration rms is high (z = +19.4); motor winding temp is low (z = -14.8),Examine the impeller for deposits or damage.
+PUMP-09,2026-02-12T00:15:00Z,MACHINE,IMBALANCE,0.9642,vibration rms is high (z = +22.9); motor winding temp is low (z = -13.2),Examine the impeller for deposits or damage.
+PUMP-09,2026-02-13T06:02:00Z,MACHINE,UNKNOWN,0.0,motor winding temp is low (z = -15.4),Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-14T01:16:00Z,MACHINE,UNKNOWN,0.32,flow is low (z = -11.5),Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-15T08:02:00Z,MACHINE,IMPELLER_WEAR,0.2503,Head is 5.0 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.

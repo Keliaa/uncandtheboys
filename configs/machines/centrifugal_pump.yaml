@@ -115,3 +115,13 @@ actions:
 
 # Certainty labels (worklist section 6): High >= 0.70, Medium 0.40-0.70, Low < 0.40 -> UNKNOWN.
 certainty: {high: 0.70, medium: 0.40}
+
+# Optional physics part (D04). Curve: H = H_bep (h0 r^2 - (h0-1)(Q/Q_bep)^2), r = speed / rated speed,
+# h0 = shut-off head / BEP head. Affinity: pressure ~ speed^2, power ~ speed^3.
+# Parameters come from the asset nameplate (pump_rated_*, pump_shutoff_head_m, design_*, static_head_m).
+physics:
+  brackish_salinity_psu: 6.0          # used when the asset fluid text contains "brackish"
+  assumed_suction_kpa_by_profile:     # gauge suction pressure when no suction transmitter exists
+    SHIP_LT_FRESHWATER: 120.0         # pressurised closed loop (expansion tank)
+  ewma_span_min: 30
+  steady_min_minutes: 10

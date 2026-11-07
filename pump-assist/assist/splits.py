@@ -13,7 +13,7 @@ EXP_ROOT = Path(__file__).resolve().parents[1]      # pump-assist/: everything t
 REPO_ROOT = EXP_ROOT.parent                          # shared, read-only: data/, original-challenge/, baseline-reproduction/
 DATA_FULL = REPO_ROOT / "data" / "full"
 
-SPLITS = ("train", "validation", "test")
+SPLITS = ("train", "validation", "test", "stress")      # "stress": generated fleets (make_dataset.py --tier stress), labels in private/
 EXPECTED = {
     "train": [f"PUMP-{i:02d}" for i in range(1, 8)],
     "validation": ["PUMP-08", "PUMP-09"],

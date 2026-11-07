@@ -42,6 +42,10 @@ def main():
     base = pd.read_csv(ROOT.parent / "original-challenge/baselines/results/baseline_metrics.csv")
     for _, r in base.iterrows():
         rows.append({"option": r["baseline"], "split": r["split"], **{k: r[k] for k in KEYS}})
+    t03 = ROOT / "results" / "t03_stress.csv"          # T03: generated stress fleets, mean of seeds 101-103 (frozen system and B1)
+    if t03.exists():
+        for _, r in pd.read_csv(t03).query("seed == 'mean'").iterrows():
+            rows.append({"option": "stress mean (T03): " + r["system"], "split": "stress", **{k: r[k] for k in KEYS}})
     df = pd.DataFrame(rows)
     df.to_csv(ROOT / "results" / "results.csv", index=False)
     show = df.copy()

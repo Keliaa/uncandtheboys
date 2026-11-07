@@ -1,0 +1,36 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+STRESS-01,2025-03-05T22:11:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +8.4),Do a performance test. Examine the impeller and the wear rings.
+STRESS-01,2025-03-07T10:48:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+STRESS-02,2025-04-02T07:51:00Z,MACHINE,IMPELLER_WEAR,0.2732,Head is 5.5 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-04-03T08:32:00Z,MACHINE,IMPELLER_WEAR,0.2393,Head is 4.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-04-04T07:50:00Z,MACHINE,IMPELLER_WEAR,0.2728,Head is 5.5 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-04-05T00:10:00Z,MACHINE,IMPELLER_WEAR,1.0,motor speed is low (z = -10.4); motor power is low (z = -10.2); motor current is low (z = -9.0),Do a performance test. Examine the impeller and the wear rings.
+STRESS-02,2025-04-05T13:47:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +8.7),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-04-06T01:12:00Z,MACHINE,IMPELLER_WEAR,1.0,motor speed is low (z = -8.1),Do a performance test. Examine the impeller and the wear rings.
+STRESS-02,2025-04-06T17:55:00Z,MACHINE,IMPELLER_WEAR,1.0,motor power is low (z = -8.1); motor speed is low (z = -8.1),Do a performance test. Examine the impeller and the wear rings.
+STRESS-02,2025-04-07T07:51:00Z,MACHINE,IMPELLER_WEAR,0.2489,Head is 5.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-04-08T07:51:00Z,MACHINE,IMPELLER_WEAR,0.2275,Head is 4.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-03,2025-11-18T05:33:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-03,2025-11-18T07:23:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,bearing_temp_c varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-03,2025-11-18T09:21:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+STRESS-03,2025-11-18T18:16:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-04,2025-03-14T00:48:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-04,2025-03-16T22:08:00Z,MACHINE,IMPELLER_WEAR,0.1502,Head is 3.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-15T07:50:00Z,MACHINE,IMPELLER_WEAR,0.2094,Head is 4.2 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-15T21:27:00Z,MACHINE,IMPELLER_WEAR,0.2509,Head is 5.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-17T07:50:00Z,MACHINE,IMPELLER_WEAR,0.2683,Head is 5.4 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-18T07:49:00Z,MACHINE,IMPELLER_WEAR,0.2159,Head is 4.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-18T21:24:00Z,MACHINE,IMPELLER_WEAR,0.2126,Head is 4.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-19T08:24:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -8.3),Inspect and clean the suction strainer.
+STRESS-05,2025-12-19T20:41:00Z,MACHINE,IMPELLER_WEAR,0.1417,Head is 2.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-12-19T21:06:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,After the maintenance stop the new baseline of suction pressure kpa is -28.8 spreads from the old one; After the maintenance stop the new baseline of discharge pressure kpa is -15.4 spreads from the old one,Inspect and clean the suction strainer.
+STRESS-05,2025-12-19T23:32:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -28.0); discharge pressure is low (z = -14.4),Inspect and clean the suction strainer.
+STRESS-06,2025-11-11T23:36:00Z,SENSOR,SENSOR_STUCK,0.6,motor_current_a has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+STRESS-07,2025-08-14T09:26:00Z,SENSOR,SENSOR_STUCK,0.6,motor_current_a has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+STRESS-07,2025-08-14T16:16:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,motor_current_a varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-07,2025-08-15T02:59:00Z,SENSOR,SENSOR_STUCK,0.6,motor_current_a has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+STRESS-08,2025-04-11T19:21:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is low (z = -11.0),Do a performance test. Examine the impeller and the wear rings.
+STRESS-08,2025-04-11T19:45:00Z,MACHINE,IMPELLER_WEAR,0.2418,Head is 4.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-08,2025-04-12T03:06:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,discharge pressure is low (z = -12.4),Inspect and clean the suction strainer.
+STRESS-08,2025-04-12T16:57:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -9.4),Inspect and clean the suction strainer.
+STRESS-08,2025-04-15T21:02:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,suction_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.

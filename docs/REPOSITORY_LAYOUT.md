@@ -10,6 +10,16 @@ Shared documents belong here in `docs/`. Original challenge documents remain in 
 
 To run original challenge tests against shared data, set `RETROFIT_DATA_FULL` and `RETROFIT_DATA_STARTER` to the absolute shared dataset paths. Original instructions and defaults inside the reference snapshot intentionally retain their original contents.
 
+Windows PowerShell, from the repository root after the [Windows setup](../README.md#windows-powershell):
+
+```powershell
+$env:RETROFIT_DATA_FULL = (Resolve-Path .\data\full).Path
+$env:RETROFIT_DATA_STARTER = (Resolve-Path .\data\starter).Path
+.\.venv\Scripts\python.exe -m pytest -q .\original-challenge\tests
+```
+
+These environment variables apply to the current PowerShell session. The shared datasets must be present; see [data setup](../data/README.md).
+
 ## Reorganization verification
 
 All 83 original tracked files were compared byte for byte with `8ceb2a1`. All experiment Python files passed syntax parsing. The relocated B1 evaluator reproduced train 58.2, validation 78.0, mean 68.1 from the saved predictions. The B4 CLI loaded successfully and rejected an output path under shared `data/` before creating it. Full B4 execution and pytest could not be completed in the current environment: the local virtualenv lacks dependencies, the system Python lacks a Parquet engine and pytest, and dependency download was unavailable.

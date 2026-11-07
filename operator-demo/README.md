@@ -14,6 +14,10 @@ The main screen answers *“What needs my attention, why, and what should I do n
 
 ## Run it
 
+Run the commands in this section from `operator-demo/`.
+
+### macOS / Linux
+
 ```sh
 ./run_demo.sh
 ```
@@ -29,12 +33,33 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/streamlit run app.py
 ```
 
+### Windows PowerShell
+
+From the repository root (`Uncandtheboys`), enter the demo directory and install its dependencies once:
+
+```powershell
+cd .\operator-demo
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r .\requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run .\app.py --server.headless true --browser.gatherUsageStats false
+```
+
+Open http://localhost:8501 in your browser. Stop the server with Ctrl+C. On later runs, execute only the last command from `operator-demo/`.
+
+Use Python 3.10 or newer. `run_demo.sh` requires Bash and Unix virtualenv paths (`.venv/bin/`); native Windows virtualenvs use `.venv\Scripts\`. Use the PowerShell commands above on Windows. They do not require virtualenv activation or execution-policy changes. If `python` is unavailable but the Python launcher is installed, use `py -3 -m venv .venv` for the creation step.
+
 ## Replay bundles
 
 `bundles/` is committed and is all the presentation needs. To regenerate it from the shared development data:
 
 ```sh
 ./run_demo.sh --prepare          # or: .venv/bin/python prepare_demo.py
+```
+
+Windows PowerShell, from `operator-demo/` after installing dependencies:
+
+```powershell
+.\.venv\Scripts\python.exe .\prepare_demo.py
 ```
 
 [prepare_demo.py](prepare_demo.py) imports `b4.py` unchanged, runs it with the frozen parameters over each pump's whole
@@ -65,6 +90,13 @@ this selection/validation and go to `bundles/prep_report.json`, which the app ne
 ```sh
 .venv/bin/python -m pytest -q tests                      # replay timing, grouping, workflow, monitoring, app walkthrough
 .venv/bin/python -m pytest -q ../physics-context-detector/tests   # B4's causality checks
+```
+
+Windows PowerShell, from `operator-demo/`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q .\tests
+.\.venv\Scripts\python.exe -m pytest -q ..\physics-context-detector\tests
 ```
 
 ## Layout

@@ -1,6 +1,12 @@
 # Presenter script (≈4 minutes)
 
-Before the audience arrives: `./run_demo.sh`, then press **Reset demo** in the sidebar. Laptop at a normal resolution,
+Before the audience arrives: run `./run_demo.sh` on macOS/Linux, or the command below in Windows PowerShell from `operator-demo/` after the [first-time setup](README.md#windows-powershell):
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run .\app.py --server.headless true --browser.gatherUsageStats false
+```
+
+Open http://localhost:8501, then press **Reset demo** in the sidebar. Laptop at a normal resolution,
 browser zoom 100 %. Wi-Fi can be off.
 
 ## Opening (20 s)
@@ -63,4 +69,4 @@ Press **▶ Play**; it pauses at 00:09 on **Verify the motor-current reading**.
 
 - Pressed the wrong button: **↺ Restart** restarts the current chapter; **Reset demo** starts over.
 - Need to skip ahead: drag **Replay position** — it stops at the next new check, just like Play.
-- “No replay bundles found”: run `./run_demo.sh --prepare` (needs the shared `data/full` directory).
+- “No replay bundles found”: run `./run_demo.sh --prepare` on macOS/Linux, or `.\.venv\Scripts\python.exe .\prepare_demo.py` in Windows PowerShell from `operator-demo/` (needs the shared `data/full` directory). Then restart the demo.

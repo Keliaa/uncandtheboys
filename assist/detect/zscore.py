@@ -46,8 +46,9 @@ def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,
         for i, x in enumerate(flag):
             c = c + 1 if x else 0
             run[i] = c
-        chans = []
+        chans, zall = [], []
         for i in range(len(g)):
+            zall.append({CH[keys[j]]: float(Z[i, j]) for j in range(len(keys)) if np.isfinite(Z[i, j])} if flag[i] else {})
             if flag[i]:
                 idx = [j for j in np.argsort(-absz[i]) if absz[i, j] > k]
                 chans.append([{"channel": CH[keys[j]], "z": float(Z[i, j])} for j in idx])
@@ -59,7 +60,7 @@ def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,
             "window_start_utc": g["window_start_utc"],
             "available_utc": g["window_start_utc"] + pd.Timedelta(minutes=1),
             "in_baseline": g["window_start_utc"] < t0 + pd.Timedelta(hours=BASELINE_H),
-            "score": score, "flag": flag, "run": run, "sustained": run >= persist, "channels": chans,
+            "score": score, "flag": flag, "run": run, "sustained": run >= persist, "channels": chans, "z_all": zall,
         }))
     return pd.concat(out, ignore_index=True)
 
@@ -88,4 +89,25 @@ def to_alerts(det: pd.DataFrame, refractory: pd.Timedelta = REFRACTORY):
                                       event_class="MACHINE", fault_type="UNKNOWN",
                                       probability=float(min(0.99, max(0.05, r.score / 20.0))), evidence=ev,
                                       recommended_action="Inspect the pump. Examine the channels in the evidence."))
+    return alerts
+
+
+def to_alerts_with_rules(det: pd.DataFrame, assets_cfg: dict, machine: dict, k: float = DEFAULT_K,
+                         refractory: pd.Timedelta = REFRACTORY):
+    """Like to_alerts, but E01 gives fault type, confidence, certainty and evidence text.
+
+    assets_cfg: asset_id -> assist.config.Asset.
+    """
+    from ..alert import AlertRecord
+    from ..evidence.rules import classify
+    alerts = []
+    for a, g in det.groupby("asset_id", sort=False):
+        last = {}
+        starts = g[g.sustained & ~g.sustained.shift(fill_value=False) & ~g.in_baseline]
+        for _, r in starts.iterrows():
+            d = classify(r.z_all, assets_cfg[a], machine, k)
+            if d["fault_type"] in last and r.available_utc - last[d["fault_type"]] < refractory:
+                continue
+            last[d["fault_type"]] = r.available_utc
+            alerts.append(AlertRecord(asset_id=a, alert_time_utc=r.available_utc.strftime("%Y-%m-%dT%H:%M:%SZ"), **d))
     return alerts

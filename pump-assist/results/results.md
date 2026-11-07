@@ -20,6 +20,8 @@
 | D01 + D03 (option, off in frozen system) | validation | 81.43 | 0.9 | 1.0 | 0.818 | 0.143 | 0.838 | 0.556 | 1.0 |
 | + V03 bearing alerts (option, off in frozen system) | train | 61.852 | 0.656 | 0.769 | 0.571 | 0.306 | 0.647 | 0.423 | 0.692 |
 | + V03 bearing alerts (option, off in frozen system) | validation | 80.074 | 0.857 | 1.0 | 0.75 | 0.214 | 0.863 | 0.556 | 1.0 |
+| + V02 spectral typing (option, off in frozen system) | train | 61.282 | 0.667 | 0.769 | 0.588 | 0.286 | 0.642 | 0.385 | 0.692 |
+| + V02 spectral typing (option, off in frozen system) | validation | 84.709 | 0.9 | 1.0 | 0.818 | 0.143 | 0.863 | 0.667 | 1.0 |
 | B0_scada_alarms | train | 27.59 | 0.308 | 0.231 | 0.462 | 0.143 | 0.213 | 0.038 | 0.231 |
 | B0_scada_alarms | validation | 23.111 | 0.2 | 0.111 | 1.0 | 0.0 | 0.111 | 0.111 | 0.111 |
 | B1_mode_aware_z | train | 58.246 | 0.72 | 0.692 | 0.75 | 0.122 | 0.577 | 0.269 | 0.538 |

@@ -32,7 +32,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
                  t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
-                 features: pd.DataFrame | None = None):
+                 features: pd.DataFrame | None = None, gate=True):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -73,7 +73,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if clf is None and use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)
         clf = lambda a, z, t: model.predict_proba(z)
-    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=True, sensor_alone=sensor_alone), machine)
+    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=gate, sensor_alone=sensor_alone), machine)
     if e03_shape:      # E03: slow sensor movement is a drift, a jump is a calibration shift
         from .evidence.sensor import refine_sensor_types
         alerts = refine_sensor_types(alerts, zf, machine)

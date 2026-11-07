@@ -19,18 +19,23 @@ ENGINES = ("v2", "b4")
 DEFAULTS: dict[str, Any] = {
     "engine": "v2",
     "b4": {"params_file": None, "params": {}},
+    "shared": {"vibration_evidence": {"v2": True, "b4": False}, "episodes_quiet_min": {"v2": 1440, "b4": 0}, "what_if": False,
+               "quality_report": True},
     "v2": {
         "detect": {"k": 8.0, "persist": 10, "trust_gate": True, "regime": "speed", "baseline": "static",
                    "benign": {"enabled": True, "tail_min": 60, "hs_limit": 2.2}},
         "physics": {"enabled": True, "limit_pct": 2.0, "persist": 30},
         "quality": {"gap_persist": 30, "flat_min": 30},
         "maintenance": {"enabled": True, "step_z": 8.0},
-        "evidence": {"e02": True, "gate": True, "sensor_alone": None, "shape_typing": True, "derived_sensor": True,
-                     "episodes_quiet_min": 1440, "stable_min": 1},
-        "recommend": {"what_if": False},
+        "evidence": {"e02": True, "gate": True, "sensor_alone": None, "shape_typing": True, "derived_sensor": True, "stable_min": 1},
         "options": {"d02_limit": None, "ewma": None, "v03_alerts": False, "v02_typing": False},
     },
 }
+
+
+def for_engine(value: Any, engine: str) -> Any:
+    """A setting may be one value for both engines or {v2: ..., b4: ...}."""
+    return value[engine] if isinstance(value, dict) and set(value) <= set(ENGINES) and value else value
 
 
 class Cfg(dict):

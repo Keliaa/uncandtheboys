@@ -25,10 +25,10 @@ class SettingsTests(unittest.TestCase):
                 os.environ["PUMP_ASSIST_ENGINE"] = old
 
     def test_nested_overrides_and_bad_values(self):
-        s = load_settings(overrides={"v2": {"detect": {"k": 6.0}, "evidence": {"episodes_quiet_min": 0}}, "b4": {"params": {"stable_min": 10}}})
+        s = load_settings(overrides={"v2": {"detect": {"k": 6.0}, "evidence": {"stable_min": 3}}, "shared": {"episodes_quiet_min": {"v2": 0}}, "b4": {"params": {"stable_min": 10}}})
         self.assertEqual(s.v2.detect.k, 6.0)
         self.assertEqual(s.v2.detect.persist, 10)             # untouched keys keep their value
-        self.assertEqual(s.v2.evidence.episodes_quiet_min, 0)
+        self.assertEqual((s.v2.evidence.stable_min, s.shared.episodes_quiet_min), (3, {"v2": 0, "b4": 0}))
         self.assertEqual(s["b4"]["params"], {"stable_min": 10})
         with self.assertRaises(KeyError):
             load_settings(overrides={"v2": {"detect": {"kk": 1}}})

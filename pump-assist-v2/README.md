@@ -7,7 +7,9 @@ Starting point: a copy of `../pump-assist` at its final commit on `exp/practical
 ## Switchboard: `configs/pipeline.yaml`
 
 One file sets every method. `engine: v2` runs this folder's generator-free methods. `engine: b4` runs the B4 detector (`../physics-context-detector`, imported
-unchanged, read only) and returns its alerts as the same records, so the app, the reports and the scorer work with either. With `b4` the scores equal B4's:
+unchanged, read only). Both go through the same pipeline: one shared load stage (split guard, feature rows, replayed rows, channel filter), the engine's own detect and
+diagnose stage, then the shared stages (V01-V03 evidence text, episodes, action table, what-if) in the `shared:` block of the file. B4 gets its inputs from the shared
+stage and its alerts come back as the same records, so the app, the reports, the scorer, replay and the channel filter work with either engine. With `b4` the scores equal B4's:
 train 92.3, validation 95.7, stress 87.7 (v2: 66.1, 85.5, 58.9; `results/engines_compare.csv`), and the test-pump alerts equal B4's frozen file.
 Ways to switch (argument over environment over file): `run_pipeline(..., engine="b4")`, `PUMP_ASSIST_ENGINE=b4`, `engine:` in the file, the Engine box in the app,
 `python scripts/make_reports.py --engine b4`. B4's own parameters are in `b4.params` / `b4.params_file` (choose them on train pumps only); every v2 method

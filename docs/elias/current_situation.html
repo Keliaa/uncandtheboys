@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pump assist: situation</title>
+<style>
+:root{
+  --bg:#ffffff; --fg:#1b2230; --mut:#58647a; --line:#d3dae6; --card:#f3f6fb;
+  --acc:#2456c8; --acc-soft:#e3ebfb; --ok:#1a7f4b; --ok-soft:#e1f4ea; --warn:#a15c00; --warn-soft:#fdf0d8; --bad:#b42318; --bad-soft:#fbe5e2;
+  --box:#ffffff; --box-line:#9fb0cc; --arrow:#5b6b88; --v2:#7a3fb5; --v2-soft:#efe6f8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10141c; --fg:#e6eaf2; --mut:#a2aec4; --line:#2c3649; --card:#192131;
+    --acc:#7da2ff; --acc-soft:#1d2a4a; --ok:#4cc38a; --ok-soft:#14301f; --warn:#e0a84a; --warn-soft:#3a2c10; --bad:#f0776b; --bad-soft:#3a1a17;
+    --box:#192131; --box-line:#40507a; --arrow:#8d9bb8; --v2:#c39bf0; --v2-soft:#2a1d3d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10141c; --fg:#e6eaf2; --mut:#a2aec4; --line:#2c3649; --card:#192131;
+  --acc:#7da2ff; --acc-soft:#1d2a4a; --ok:#4cc38a; --ok-soft:#14301f; --warn:#e0a84a; --warn-soft:#3a2c10; --bad:#f0776b; --bad-soft:#3a1a17;
+  --box:#192131; --box-line:#40507a; --arrow:#8d9bb8; --v2:#c39bf0; --v2-soft:#2a1d3d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 56px}
+h1{font-size:1.9rem;line-height:1.2;margin:.2rem 0 .3rem}
+h2{font-size:1.25rem;margin:2.2rem 0 .6rem;padding-top:.4rem;border-top:1px solid var(--line)}
+h3{font-size:1rem;margin:1.1rem 0 .3rem}
+p{margin:.5rem 0;max-width:68ch}
+.mut{color:var(--mut)}
+.lead{font-size:1.1rem;max-width:62ch}
+.tag{display:inline-block;padding:1px 9px;border-radius:99px;font-size:.78rem;border:1px solid var(--line);background:var(--card);color:var(--mut);margin-right:4px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card h3{margin-top:0}
+.card.v2{border-color:var(--v2)}
+figure{margin:1rem 0}
+figcaption{font-size:.9rem;color:var(--mut);margin-top:.4rem;max-width:68ch}
+svg{width:100%;height:auto;display:block}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.82rem;color:var(--mut);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.best td{background:var(--ok-soft)}
+.scroll{overflow-x:auto}
+ul{margin:.4rem 0;padding-left:1.2rem;max-width:68ch}
+li{margin:.25rem 0}
+.good{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+.note{border-left:4px solid var(--warn);background:var(--warn-soft);padding:8px 12px;border-radius:0 8px 8px 0;max-width:68ch}
+code{font:.88em ui-monospace,Menlo,Consolas,monospace;background:var(--card);padding:1px 5px;border-radius:4px}
+.theme{position:fixed;top:10px;right:12px;font-size:.8rem;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer}
+/* diagram */
+.d-box{fill:var(--box);stroke:var(--box-line);stroke-width:1.5}
+.d-box.main{stroke:var(--acc);stroke-width:2}
+.d-box.v2{stroke:var(--v2);stroke-width:2;stroke-dasharray:5 3;fill:var(--v2-soft)}
+.d-box.person{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}
+.d-box.cfg{fill:var(--acc-soft);stroke:var(--acc);stroke-width:1.5}
+.d-t{fill:var(--fg);font:600 14px system-ui,sans-serif}
+.d-s{fill:var(--mut);font:12.5px system-ui,sans-serif}
+.d-n{fill:var(--acc);font:700 13px system-ui,sans-serif}
+.d-line{stroke:var(--arrow);stroke-width:1.8;fill:none}
+.d-lock{fill:var(--bad);font:600 12.5px system-ui,sans-serif}
+.split-train{fill:var(--acc-soft);stroke:var(--acc)} .split-val{fill:var(--warn-soft);stroke:var(--warn)} .split-test{fill:var(--bad-soft);stroke:var(--bad)}
+.bar-b1{fill:#8a96ad} .bar-pa{fill:var(--acc)} .bar-v2{fill:var(--v2)} .bar-b4{fill:var(--ok)}
+.b-lab{fill:var(--fg);font:13px system-ui,sans-serif} .b-val{fill:var(--fg);font:700 13px system-ui,sans-serif}
+</style>
+</head>
+<body>
+<button class="theme" id="theme" type="button" aria-label="Change color theme">Theme</button>
+<main>
+
+<p><span class="tag">RETROFIT AI</span><span class="tag">team uncandtheboys</span><span class="tag">7 Nov 2026 (updated)</span><span class="tag">Language: ASD-STE100</span></p>
+<h1>Pump assist: the situation now</h1>
+<p class="lead">The system reads pump data. It finds problems early. It shows the evidence and how sure it is. It recommends an action. A person decides. The system cannot send a command to a pump.</p>
+
+<h2>1. The system</h2>
+<p>The system has five parts. Each part gives its result to the next part. Figure 1 shows the parts.</p>
+<p>Version 2 has an engine switch. One file, <code>configs/pipeline.yaml</code>, sets the engine to <strong>v2</strong> or <strong>b4</strong>. Both engines read the same inputs. Both engines pass through the same shared stages. The app, the reports and the scorer work with either engine.</p>
+
+<figure>
+<svg viewBox="0 85 920 440" role="img" aria-labelledby="f1t f1d">
+  <title id="f1t">Figure 1: the five parts of the pump assist system</title>
+  <desc id="f1d">Pump data goes to ingest and data quality, then detect, then evidence, then recommend, then a person. A machine file feeds all parts. Version 2 adds two checks.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--arrow)"/></marker>
+  </defs>
+
+  <!-- data -->
+  <rect class="d-box" x="10" y="150" width="120" height="110" rx="12"/>
+  <text class="d-t" x="70" y="184" text-anchor="middle">Pump data</text>
+  <text class="d-s" x="70" y="206" text-anchor="middle">1-minute rows</text>
+  <text class="d-s" x="70" y="224" text-anchor="middle">vibration records</text>
+  <text class="d-s" x="70" y="242" text-anchor="middle">plant context</text>
+
+  <!-- 1 ingest -->
+  <rect class="d-box main" x="165" y="140" width="150" height="130" rx="12"/>
+  <text class="d-n" x="180" y="162">1</text>
+  <text class="d-t" x="240" y="186" text-anchor="middle">Ingest</text>
+  <text class="d-s" x="240" y="208" text-anchor="middle">Read rows in order</text>
+  <text class="d-s" x="240" y="226" text-anchor="middle">Trust value per</text>
+  <text class="d-s" x="240" y="244" text-anchor="middle">channel (0 to 1)</text>
+
+  <!-- 2 detect -->
+  <rect class="d-box main" x="345" y="100" width="170" height="210" rx="12"/>
+  <text class="d-n" x="360" y="122">2</text>
+  <text class="d-t" x="430" y="146" text-anchor="middle">Detect</text>
+  <text class="d-s" x="430" y="170" text-anchor="middle">Robust z-score</text>
+  <text class="d-s" x="430" y="188" text-anchor="middle">Pump-curve check</text>
+  <text class="d-s" x="430" y="206" text-anchor="middle">After-maintenance</text>
+  <text class="d-s" x="430" y="224" text-anchor="middle">check</text>
+  <text class="d-s" x="430" y="248" text-anchor="middle">Hold alerts in start-up,</text>
+  <text class="d-s" x="430" y="266" text-anchor="middle">load change, storm</text>
+  <text class="d-s" x="430" y="290" text-anchor="middle">Is the pump abnormal?</text>
+
+  <!-- 3 evidence -->
+  <rect class="d-box main" x="545" y="100" width="170" height="210" rx="12"/>
+  <text class="d-n" x="560" y="122">3</text>
+  <text class="d-t" x="630" y="146" text-anchor="middle">Evidence</text>
+  <text class="d-s" x="630" y="170" text-anchor="middle">Sensor or machine?</text>
+  <text class="d-s" x="630" y="188" text-anchor="middle">Rules + naive Bayes</text>
+  <text class="d-s" x="630" y="206" text-anchor="middle">for the fault type</text>
+  <text class="d-s" x="630" y="230" text-anchor="middle">Change time, vibration</text>
+  <text class="d-s" x="630" y="248" text-anchor="middle">evidence, certainty</text>
+  <text class="d-s" x="630" y="290" text-anchor="middle">Why? How sure?</text>
+
+  <!-- 4 recommend -->
+  <rect class="d-box main" x="745" y="140" width="165" height="130" rx="12"/>
+  <text class="d-n" x="760" y="162">4</text>
+  <text class="d-t" x="827" y="186" text-anchor="middle">Recommend</text>
+  <text class="d-s" x="827" y="208" text-anchor="middle">Action table</text>
+  <text class="d-s" x="827" y="226" text-anchor="middle">What-if check</text>
+  <text class="d-s" x="827" y="244" text-anchor="middle">(simulation)</text>
+
+  <!-- person -->
+  <rect class="d-box person" x="745" y="350" width="165" height="110" rx="12"/>
+  <text class="d-n" x="760" y="372">5</text>
+  <text class="d-t" x="827" y="396" text-anchor="middle">Person</text>
+  <text class="d-s" x="827" y="418" text-anchor="middle">App or report</text>
+  <text class="d-s" x="827" y="436" text-anchor="middle">Approve, reject,</text>
+  <text class="d-s" x="827" y="452" text-anchor="middle">or not sure</text>
+
+  <!-- arrows -->
+  <path class="d-line" d="M130 205 H163" marker-end="url(#ah)"/>
+  <path class="d-line" d="M315 205 H343" marker-end="url(#ah)"/>
+  <path class="d-line" d="M515 205 H543" marker-end="url(#ah)"/>
+  <path class="d-line" d="M715 205 H743" marker-end="url(#ah)"/>
+  <path class="d-line" d="M827 270 V348" marker-end="url(#ah)"/>
+
+  <!-- v2 additions -->
+  <rect class="d-box v2" x="520" y="336" width="220" height="86" rx="10"/>
+  <text class="d-t" x="630" y="358" text-anchor="middle" style="fill:var(--v2)">Version 2 adds</text>
+  <text class="d-s" x="630" y="377" text-anchor="middle">Engine switch: v2 or B4</text>
+  <text class="d-s" x="630" y="393" text-anchor="middle">Derived-channel sensor check</text>
+  <text class="d-s" x="630" y="409" text-anchor="middle">One alert per problem</text>
+  <path class="d-line" d="M630 310 V334" style="stroke:var(--v2);stroke-dasharray:4 3"/>
+
+  <!-- machine file -->
+  <rect class="d-box cfg" x="165" y="338" width="330" height="66" rx="10"/>
+  <text class="d-t" x="330" y="362" text-anchor="middle">Machine file (one file for all pumps)</text>
+  <text class="d-s" x="330" y="381" text-anchor="middle">Channels · symptom table · action table</text>
+  <text class="d-s" x="330" y="397" text-anchor="middle">Each pump has its own asset file (nameplate)</text>
+  <path class="d-line" d="M240 338 V272" style="stroke-dasharray:4 3" marker-end="url(#ah)"/>
+  <path class="d-line" d="M430 338 V312" style="stroke-dasharray:4 3" marker-end="url(#ah)"/>
+
+  <!-- read only -->
+  <text class="d-lock" x="460" y="500" text-anchor="middle">READ ONLY: there is no path from the system back to the pump</text>
+  <line x1="40" y1="480" x2="880" y2="480" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="6 4"/>
+</svg>
+<figcaption>Figure 1. The five parts. Solid arrows show the data. Dashed arrows show the files that give knowledge to the parts. Purple dashed box: the additions in version 2. The engine switch chooses the method in part 2 and part 3. Part 1, part 4 and the shared stages stay the same.</figcaption>
+</figure>
+
+<div class="grid">
+  <div class="card"><h3>1 Ingest</h3><p>This part reads one row for each pump for each minute. It uses a row only after its minute ends. It gives each channel a trust value. A frozen or missing channel gets trust 0.</p></div>
+  <div class="card"><h3>2 Detect</h3><p>This part asks: is the pump abnormal? A robust z-score compares each channel with the pump's own first day. A pump-curve check compares the pump head with the pump curve. A check after each maintenance stop looks for a step.</p></div>
+  <div class="card"><h3>3 Evidence</h3><p>This part finds the reason. If one channel moves alone, it is a sensor fault. If related channels move, it is a machine fault. Naive Bayes gives a probability for each fault type.</p></div>
+  <div class="card"><h3>4 Recommend</h3><p>This part looks up the action for the fault type. A simulation shows the expected effect and cost of the action.</p></div>
+  <div class="card"><h3>5 Person</h3><p>A person reads the alert and the evidence. The person approves, rejects, or marks it as not sure. The system keeps the decision.</p></div>
+</div>
+
+<h2>2. The data and the tests</h2>
+<p>The data has 12 pumps. Each pump has 7 days of data. The pumps are in three groups. A pump is in one group only. Nobody mixes the groups.</p>
+
+<figure>
+<svg viewBox="0 0 920 150" role="img" aria-labelledby="f2t">
+  <title id="f2t">Figure 2: the three groups of pumps</title>
+  <rect class="split-train" x="10" y="20" width="560" height="60" rx="8" stroke-width="1.5"/>
+  <text class="d-t" x="290" y="46" text-anchor="middle">Train: PUMP-01 to 07</text>
+  <text class="d-s" x="290" y="66" text-anchor="middle">Fit the models. Choose the settings.</text>
+  <rect class="split-val" x="580" y="20" width="160" height="60" rx="8" stroke-width="1.5"/>
+  <text class="d-t" x="660" y="46" text-anchor="middle">Validation: 08, 09</text>
+  <text class="d-s" x="660" y="66" text-anchor="middle">Compare the options.</text>
+  <rect class="split-test" x="750" y="20" width="160" height="60" rx="8" stroke-width="1.5"/>
+  <text class="d-t" x="830" y="46" text-anchor="middle">Test: 10 to 12</text>
+  <text class="d-s" x="830" y="66" text-anchor="middle">One run. No scoring.</text>
+  <text class="d-s" x="10" y="112">Extra tests: 3 generated "stress" fleets (24 new pumps) · leave one pump out · leave one site out · fewer sensors</text>
+</svg>
+<figcaption>Figure 2. The groups of pumps. The validation group has only 9 events. Do not trust small differences.</figcaption>
+</figure>
+
+<h2>3. Three versions</h2>
+<div class="grid">
+  <div class="card"><h3>pump-assist</h3><p>The first system. It does all tickets of the practical worklist.</p><p class="mut">Folder <code>pump-assist/</code><br>Branch <code>exp/practical-worklist</code></p></div>
+  <div class="card v2"><h3>pump-assist-v2</h3><p>The same system with new ideas from B4. It does not use values from the generator. It has one alert for each problem. It has a derived-channel sensor check. It has a switch that runs the B4 detector in the same pipeline.</p><p class="mut">Folder <code>pump-assist-v2/</code><br>Branch <code>exp/pump-assist-v2</code></p></div>
+  <div class="card"><h3>B4</h3><p>A different detector in the repository. It uses physics rules and constants from the simulator. It is the best detector so far.</p><p class="mut">Folder <code>physics-context-detector/</code></p></div>
+</div>
+
+<h2>4. Results</h2>
+<p>The table shows the composite score from the official scorer. Higher is better. The maximum is 100.</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Version</th><th class="n">Train</th><th class="n">Validation</th><th class="n">Stress fleets (3)</th><th class="n">Leave one pump out</th></tr></thead>
+  <tbody>
+    <tr><td>B1 baseline</td><td class="n">58.2</td><td class="n">78.0</td><td class="n">52.1</td><td class="n">–</td></tr>
+    <tr><td>pump-assist</td><td class="n">64.1</td><td class="n">85.5</td><td class="n">57.9</td><td class="n">–</td></tr>
+    <tr><td>pump-assist-v2</td><td class="n">66.1</td><td class="n">85.5</td><td class="n">58.9</td><td class="n">70.3</td></tr>
+    <tr><td>pump-assist-v2, engine switch = b4</td><td class="n">92.3</td><td class="n">95.7</td><td class="n">87.7</td><td class="n">93.9</td></tr>
+    <tr class="best"><td>B4</td><td class="n">92.3</td><td class="n">95.7</td><td class="n">87.7</td><td class="n">93.9</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>With the switch set to b4, version 2 gives the B4 scores. We checked this. The 26 alerts on the test pumps are the same as the frozen B4 file.</p>
+<figure>
+<svg viewBox="0 0 920 230" role="img" aria-labelledby="f3t">
+  <title id="f3t">Figure 3: scores on new pumps</title>
+  <text class="d-t" x="10" y="20">Stress fleets (new pumps)</text>
+  <text class="b-lab" x="10" y="52">B1</text><rect class="bar-b1" x="140" y="38" width="313" height="20" rx="3"/><text class="b-val" x="462" y="53">52.1</text>
+  <text class="b-lab" x="10" y="82">pump-assist</text><rect class="bar-pa" x="140" y="68" width="347" height="20" rx="3"/><text class="b-val" x="496" y="83">57.9</text>
+  <text class="b-lab" x="10" y="112">pump-assist-v2</text><rect class="bar-v2" x="140" y="98" width="354" height="20" rx="3"/><text class="b-val" x="503" y="113">58.9</text>
+  <text class="b-lab" x="10" y="142">B4</text><rect class="bar-b4" x="140" y="128" width="526" height="20" rx="3"/><text class="b-val" x="675" y="143">87.7</text>
+  <line x1="140" y1="30" x2="140" y2="158" stroke="var(--line)"/>
+  <text class="d-s" x="140" y="178">Bar length = score (0 to 100 = 0 to 600 px)</text>
+  <text class="d-s" x="140" y="200">Leave one pump out: B4 93.9, v2 70.3.</text>
+</svg>
+<figcaption>Figure 3. Scores on 24 pumps that the systems did not see. B4 is far ahead.</figcaption>
+</figure>
+
+<h3>The main gap: the fault type</h3>
+<p>In the leave-one-pump-out test, B4 names the correct fault type for 33 of 35 events. Version 2 names the correct fault type for 15 of 35 events. B4 uses the physics of the pump to find the type. Version 2 does not use values from the generator, so it has no such knowledge.</p>
+
+<h3>Warning time</h3>
+<p>B4 alerts about at the time of the conventional alarm limit (median lead −0.1 hour). Version 2 alerts earlier (median lead 6.2 hours). But version 2 finds fewer events: 29 of 35, against 34 of 35 for B4.</p>
+
+<h2>5. What we learned</h2>
+<div class="grid">
+  <div class="card"><h3 class="good">What helped</h3>
+    <ul>
+      <li>Data quality: a frozen or missing sensor gives a sensor alert.</li>
+      <li>Hold alerts during start-up, load change and storm.</li>
+      <li>Naive Bayes for the fault type, with a rule check.</li>
+      <li>One alert for each problem (version 2).</li>
+      <li>Derived-channel check: a drifting suction sensor is not impeller wear (version 2).</li>
+      <li>One config file runs v2 or B4 in the same pipeline, so we can compare them with the same tools.</li>
+    </ul></div>
+  <div class="card"><h3 class="bad">What did not help</h3>
+    <ul>
+      <li>Clusters for operating mode, PCA, autoencoder, decision tree.</li>
+      <li>Learned fault signatures (little data for each type).</li>
+      <li>A wait for a stable fault type before the first alert.</li>
+      <li>A veto of bearing wear from the vibration record.</li>
+    </ul></div>
+  <div class="card"><h3 class="warn">What costs points</h3>
+    <ul>
+      <li>A new site: about 11 points.</li>
+      <li>New stress pumps: about 28 points.</li>
+      <li>Fewer sensors: legacy sensors only gives 40 on train pumps and 42 on the validation pump.</li>
+    </ul></div>
+</div>
+
+<div class="note" style="margin-top:1rem"><strong>Caution.</strong> The train scores of pump-assist use a model that saw some train events. The validation group has only 9 events. B4 uses constants from the simulator, so its scores are close to "knowing the generator". A real plant needs new tuning.</div>
+
+<h2>6. Next steps</h2>
+<ul>
+  <li>Add a diagnosis "ambiguous between X and Y" when the sensors cannot separate two causes.</li>
+  <li>Replay real telemetry against the maintenance records and operator review.</li>
+  <li>Make better evidence for the fault type. Do not change the classifier.</li>
+  <li>Use the engine switch to find which B4 methods give the gain. Replace the simulator constants in B4 by values that the system learns from data.</li>
+  <li>Make the screen recording for the demo video (a manual step).</li>
+</ul>
+
+<h2>Words</h2>
+<table>
+  <tbody>
+    <tr><td><strong>Composite score</strong></td><td>One number from 0 to 100 that combines detection, timing, fault type, class and false alerts.</td></tr>
+    <tr><td><strong>z-score</strong></td><td>The deviation of a value from normal, in units of the normal variation. z = 8 is a large deviation.</td></tr>
+    <tr><td><strong>Stress fleet</strong></td><td>A group of new pumps that a program generates. Some have unseen sizes, seasons and missing sensors.</td></tr>
+    <tr><td><strong>Leave one pump out</strong></td><td>Hold back one pump. Choose the settings on the other pumps. Score the held-back pump. Do this for each pump.</td></tr>
+    <tr><td><strong>Derived channel</strong></td><td>A value that the system calculates from other channels. Example: head = (discharge − suction pressure) / (density × gravity).</td></tr>
+  </tbody>
+</table>
+
+</main>
+<script>
+(function(){
+  var b=document.getElementById('theme'),r=document.documentElement;
+  try{var s=localStorage.getItem('theme');if(s)r.setAttribute('data-theme',s)}catch(e){}
+  b.addEventListener('click',function(){
+    var dark=r.getAttribute('data-theme')?r.getAttribute('data-theme')==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var n=dark?'light':'dark';r.setAttribute('data-theme',n);
+    try{localStorage.setItem('theme',n)}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

@@ -24,7 +24,8 @@ def _tail(mask: np.ndarray, tail: int) -> np.ndarray:
     if tail <= 0:
         return mask
     c = np.cumsum(mask.astype(int))
-    prev = np.concatenate([np.zeros(tail, int), c[:-tail]]) if tail < len(c) else np.zeros(len(c), int)
+    lag = tail + 1     # a mark at minute m also covers minutes m+1 .. m+tail
+    prev = np.concatenate([np.zeros(lag, int), c[:-lag]]) if lag < len(c) else np.zeros(len(c), int)
     return (c - prev) > 0
 
 

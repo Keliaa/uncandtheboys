@@ -77,6 +77,8 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if e03_shape:      # E03: slow sensor movement is a drift, a jump is a calibration shift
         from .evidence.sensor import refine_sensor_types
         alerts = refine_sensor_types(alerts, zf, machine)
+    from .evidence.changepoint import add_change_times      # D08: when did the deviation start?
+    alerts = add_change_times(alerts, zf)
     alerts += add_actions(physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine), machine)   # R01 also for D04 alerts
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
     from .detect.vibration import add_snapshot_evidence, snapshot_stats      # V01: snapshot change as bearing-wear evidence

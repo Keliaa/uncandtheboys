@@ -15,6 +15,8 @@ import pandas as pd
 from .. import _ref  # noqa: F401
 from retrofit_sim import physics as P  # noqa: E402
 
+from .benign import benign_lookup
+
 G = 9.81
 
 
@@ -53,7 +55,7 @@ def head_residual(features: pd.DataFrame, assets: pd.DataFrame, machine: dict) -
 
 
 def detect_physics(features: pd.DataFrame, assets: pd.DataFrame, machine: dict,
-                   limit_pct: float = 5.0, persist: int = 60) -> pd.DataFrame:
+                   limit_pct: float = 5.0, persist: int = 60, benign: pd.DataFrame | None = None) -> pd.DataFrame:
     """Flag when the EWMA of the residual stays below -limit_pct for `persist` steady minutes."""
     span = machine.get("physics", {}).get("ewma_span_min", 30)
     res = head_residual(features, assets, machine)
@@ -62,7 +64,7 @@ def detect_physics(features: pd.DataFrame, assets: pd.DataFrame, machine: dict,
         g = g.reset_index(drop=True)
         s = g.loc[g.steady, "residual_pct"]
         ew = s.ewm(span=span, adjust=False).mean()
-        flag = ew < -limit_pct
+        flag = (ew < -limit_pct) & ~pd.Series(benign_lookup(benign, aid, g.loc[ew.index, 'window_start_utc']), index=ew.index)
         run = flag.astype(int).groupby((~flag).cumsum()).cumsum()
         g["ewma_pct"] = np.nan
         g["run"] = 0

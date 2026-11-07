@@ -15,6 +15,8 @@ import pandas as pd
 from .. import _ref  # noqa: F401
 from retrofit_sim.baselines import BASELINE_H, CH, regime_frame, zscores  # noqa: E402
 
+from .benign import benign_lookup
+
 DEFAULT_K = 8.0       # chosen on train pumps only (results/d01_grid.csv)
 DEFAULT_PERSIST = 10   # minutes (worklist D01)
 
@@ -25,7 +27,8 @@ def z_frame(features: pd.DataFrame, assets: pd.DataFrame) -> pd.DataFrame:
 
 
 def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,
-           persist: int = DEFAULT_PERSIST, trust_gate: bool = False, zf: pd.DataFrame | None = None) -> pd.DataFrame:
+           persist: int = DEFAULT_PERSIST, trust_gate: bool = False, zf: pd.DataFrame | None = None,
+           benign: pd.DataFrame | None = None) -> pd.DataFrame:
     """One row per pump-minute: score, flag, persistent flag and deviating channels.
 
     flag      : steady running and some |z| > k on that minute
@@ -48,6 +51,7 @@ def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,
         absz = np.nan_to_num(np.abs(Z), nan=0.0)
         score = absz.max(axis=1)
         flag = g["steady"].to_numpy(bool) & (score > k)
+        flag &= ~benign_lookup(benign, a, g["window_start_utc"])   # D06: hold alerts in benign periods
         run = np.zeros(len(g), dtype=int)
         c = 0
         for i, x in enumerate(flag):

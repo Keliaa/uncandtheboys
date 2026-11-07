@@ -29,7 +29,8 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
-                 d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True):
+                 d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
+                 v03_alerts: bool = False):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -61,6 +62,11 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
     from .detect.vibration import add_snapshot_evidence, snapshot_stats      # V01: snapshot change as bearing-wear evidence
     alerts = add_snapshot_evidence(alerts, snapshot_stats(sorted(feats.asset_id.unique()), data, splits))
+    from .detect.envelope import add_envelope_evidence, bearing_alerts, bearing_envelope      # V03: bearing envelope spectrum
+    env = bearing_envelope(sorted(feats.asset_id.unique()), data, splits)
+    alerts = add_envelope_evidence(alerts, env)
+    if v03_alerts and not env.empty:
+        alerts += bearing_alerts(env, machine)
     if with_what_if:
         from .recommend.whatif import add_what_if
         alerts = add_what_if(alerts, machine, data)

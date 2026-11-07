@@ -18,7 +18,8 @@ OPTIONS = {"D01_zscore": "results/d01_trainval_predictions.csv",
            "+D04": "results/d04_plus_e01_trainval_predictions.csv",
            "+D04+Q01": "results/q01_trainval_predictions.csv",
            "+D04+Q01+D06": "results/d06_trainval_predictions.csv",
-           "+D04+Q01+D06+E02": "results/e02_trainval_predictions.csv"}
+           "+D04+Q01+D06+E02": "results/e02_trainval_predictions.csv",
+           "+E02 rule gate": "results/e02_gate_trainval_predictions.csv"}
 KEYS = ["composite_score", "event_f1", "event_recall", "alert_precision", "false_alerts_per_asset_day",
         "timeliness", "fault_type_recall", "class_recall"]
 

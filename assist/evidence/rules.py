@@ -43,6 +43,23 @@ def _words(channel: str, z: float) -> str:
     return f"{name} is {'high' if z > 0 else 'low'} (z = {z:+.1f})"
 
 
+def rule_scores(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: float) -> dict[str, float]:
+    """E01 score of each machine fault type the pump can show (0 = no symptom matches the z-scores)."""
+    scores: dict[str, float] = {}
+    for ftype, ev in usable_symptoms(machine, asset).items():
+        if machine["symptoms"][ftype]["class"] == "SENSOR":
+            continue
+        got = [(e, _match(e["direction"], z[e["channel"]], k)) for e in ev if e["channel"] in z]
+        got = [(e, m) for e, m in got if m is not None]
+        hits = [e for e, m in got if m]
+        if not hits or not any(e["direction"] != "unchanged" for e in hits):
+            scores[ftype] = 0.0
+            continue
+        mean_z = sum(abs(z[e["channel"]]) for e in hits) / len(hits)
+        scores[ftype] = (len(hits) / len(got)) * min(1.0, mean_z / (1.5 * k))
+    return scores
+
+
 def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: float) -> dict[str, Any]:
     """z: channel name -> z-score at the alert minute. Returns the diagnosis fields of an alert record."""
     dev = {c: v for c, v in z.items() if abs(v) > k}
@@ -84,13 +101,18 @@ def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: floa
                 recommended_action=action_for(machine, ft)["text"])
 
 
-def apply_classifier(d: dict[str, Any], probs: dict[str, float], asset: Asset, machine: dict[str, Any]) -> dict[str, Any]:
+def apply_classifier(d: dict[str, Any], probs: dict[str, float], asset: Asset, machine: dict[str, Any],
+                     z: dict[str, float] | None = None, k: float | None = None, gate: bool = False) -> dict[str, Any]:
     """E02: replace the rule-based type and confidence with classifier probabilities (machine faults only).
 
     Types the pump cannot show (symptom `needs` not met) are removed and the rest renormalised.
     """
     allowed = set(usable_symptoms(machine, asset))
     probs = {t: p for t, p in probs.items() if t in allowed}
+    if gate and z is not None and k is not None:
+        # Consistency gate: a type is only allowed when at least one of its own symptoms matches the evidence.
+        rs = rule_scores(z, asset, machine, k)
+        probs = {t: p for t, p in probs.items() if rs.get(t, 0.0) > 0.0}
     tot = sum(probs.values())
     if tot <= 0:
         return d

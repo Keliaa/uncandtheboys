@@ -52,7 +52,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)
         clf = lambda a, z, t: model.predict_proba(z)
-    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf), machine)
+    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=True), machine)
     alerts += add_actions(physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine), machine)   # R01 also for D04 alerts
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
     if with_what_if:

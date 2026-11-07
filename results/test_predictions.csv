@@ -1,30 +1,29 @@
 asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
 PUMP-10,2025-07-23T01:24:00Z,MACHINE,IMPELLER_WEAR,0.1173,Head is 2.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
-PUMP-10,2025-07-23T16:48:00Z,MACHINE,BEARING_WEAR,0.9994,suction pressure is low (z = -18.1); motor current is high (z = +12.7); motor power is high (z = +10.0),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-10,2025-07-23T16:48:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -18.1); motor current is high (z = +12.7); motor power is high (z = +10.0),Inspect and clean the suction strainer.
 PUMP-10,2025-07-23T17:08:00Z,MACHINE,IMPELLER_WEAR,0.1779,Head is 3.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
-PUMP-10,2025-07-23T19:15:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.7444,suction pressure is low (z = -13.4),Inspect and clean the suction strainer.
-PUMP-10,2025-07-24T05:59:00Z,MACHINE,BEARING_WEAR,1.0,suction pressure is low (z = -21.1); motor current is high (z = +8.4),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-10,2025-07-24T05:59:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -21.1); motor current is high (z = +8.4),Inspect and clean the suction strainer.
 PUMP-10,2025-07-24T06:19:00Z,MACHINE,IMPELLER_WEAR,0.2801,Head is 5.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-10,2025-07-25T20:33:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
-PUMP-11,2026-04-23T09:31:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.9682,fluid temp is high (z = +8.5),Inspect and clean the suction strainer.
-PUMP-11,2026-04-23T23:31:00Z,MACHINE,IMPELLER_WEAR,0.9992,motor power is low (z = -8.5),Do a performance test. Examine the impeller and the wear rings.
-PUMP-11,2026-04-24T09:54:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,0.8874,fluid temp is high (z = +8.5),Inspect and clean the suction strainer.
+PUMP-11,2026-04-23T09:31:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +8.5),Inspect the pump. Examine the channels in the evidence.
+PUMP-11,2026-04-23T23:31:00Z,MACHINE,IMPELLER_WEAR,1.0,motor power is low (z = -8.5),Do a performance test. Examine the impeller and the wear rings.
 PUMP-11,2026-04-25T09:05:00Z,SENSOR,SENSOR_STUCK,0.6,discharge_pressure_kpa has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
-PUMP-11,2026-04-25T11:17:00Z,MACHINE,IMPELLER_WEAR,0.9926,fluid temp is high (z = +8.2),Do a performance test. Examine the impeller and the wear rings.
-PUMP-11,2026-04-26T12:37:00Z,MACHINE,IMPELLER_WEAR,0.6518,fluid temp is high (z = +12.1),Do a performance test. Examine the impeller and the wear rings.
+PUMP-11,2026-04-25T11:17:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +8.2),Inspect the pump. Examine the channels in the evidence.
+PUMP-11,2026-04-26T12:37:00Z,MACHINE,UNKNOWN,0.0,fluid temp is high (z = +12.1),Inspect the pump. Examine the channels in the evidence.
 PUMP-12,2025-11-24T00:39:00Z,MACHINE,IMPELLER_WEAR,0.3308,Head is 6.6 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-12,2025-11-24T13:59:00Z,MACHINE,IMPELLER_WEAR,0.341,Head is 6.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-12,2025-11-24T22:15:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
 PUMP-12,2025-11-25T03:36:00Z,MACHINE,IMPELLER_WEAR,0.3539,Head is 7.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-12,2025-11-25T17:31:00Z,MACHINE,IMPELLER_WEAR,0.3534,Head is 7.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
 PUMP-12,2025-11-26T09:41:00Z,MACHINE,IMPELLER_WEAR,0.3376,Head is 6.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
-PUMP-12,2025-11-26T12:08:00Z,MACHINE,BEARING_WEAR,1.0,valve position is high (z = +10.9); discharge pressure is low (z = -9.4),Inspect the bearing and the lubrication. Plan a bearing replacement.
-PUMP-12,2025-11-27T00:14:00Z,MACHINE,BEARING_WEAR,0.9511,suction pressure is low (z = -12.1); discharge pressure is low (z = -9.0),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-12,2025-11-26T12:08:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,valve position is high (z = +10.9); discharge pressure is low (z = -9.4),Inspect and clean the suction strainer.
+PUMP-12,2025-11-27T00:14:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -12.1); discharge pressure is low (z = -9.0),Inspect and clean the suction strainer.
 PUMP-12,2025-11-27T00:34:00Z,MACHINE,IMPELLER_WEAR,0.3551,Head is 7.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
-PUMP-12,2025-11-27T15:04:00Z,MACHINE,BEARING_WEAR,1.0,suction pressure is low (z = -22.8); discharge pressure is low (z = -12.7),Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-12,2025-11-27T15:04:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -22.8); discharge pressure is low (z = -12.7),Inspect and clean the suction strainer.
 PUMP-12,2025-11-27T18:44:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
 PUMP-12,2025-11-27T18:48:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
 PUMP-12,2025-11-27T20:09:00Z,MACHINE,IMPELLER_WEAR,0.9,Head is 35.3 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-12,2025-11-27T23:33:00Z,MACHINE,BEARING_WEAR,1.0,discharge pressure is low (z = -30.6); suction pressure is low (z = -27.8); vibration crest factor is high (z = +20.5),Inspect the bearing and the lubrication. Plan a bearing replacement.
 PUMP-12,2025-11-28T13:37:00Z,MACHINE,IMPELLER_WEAR,0.5113,Head is 10.2 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
 PUMP-12,2025-11-29T04:19:00Z,MACHINE,IMPELLER_WEAR,0.5256,Head is 10.5 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
 PUMP-12,2025-11-29T10:53:00Z,MACHINE,BEARING_WEAR,1.0,vibration crest factor is high (z = +26.9),Inspect the bearing and the lubrication. Plan a bearing replacement.

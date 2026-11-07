@@ -76,9 +76,9 @@ def main():
     lopo = {p: GaussianNB(channels).fit([r for r, q in zip(rows, pumps) if q != p], [l for l, q in zip(labels, pumps) if q != p])
             if any(q != p for q in pumps) else full for p in tr}
 
-    def preds(name, classifier):
+    def preds(name, classifier, gate=False):
         f, zf, tf, ben, det = data[name]
-        a = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=classifier), machine)
+        a = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=classifier, gate=gate), machine)
         a += physics_alerts(detect_physics(f, assets, machine, 2.0, 30, benign=ben), machine)
         a += sensor_alerts(zf, tf, machine, GAP, FLAT)
         return a
@@ -118,16 +118,28 @@ def main():
     T = best[1]
     print("temperature chosen on train:", T)
     out = {}
-    for label, cls_tr, cls_va in (("E01 rules", None, None),
-                                  ("E02 naive Bayes (raw)", lambda a, z, t: lopo[a].predict_proba(z), lambda a, z, t: full.predict_proba(z)),
-                                  ("E02 naive Bayes (calibrated)", lambda a, z, t: lopo[a].predict_proba_tempered(z, T), lambda a, z, t: full.predict_proba_tempered(z, T))):
-        a_tr, a_va = preds("train", cls_tr), preds("validation", cls_va)
+    for label, cls_tr, cls_va, gate in (("E01 rules", None, None, False),
+                                  ("E02 naive Bayes (raw)", lambda a, z, t: lopo[a].predict_proba(z), lambda a, z, t: full.predict_proba(z), False),
+                                  ("E02 naive Bayes (calibrated)", lambda a, z, t: lopo[a].predict_proba_tempered(z, T), lambda a, z, t: full.predict_proba_tempered(z, T), False),
+                                  ("E02 + rule gate", lambda a, z, t: lopo[a].predict_proba_tempered(z, T), lambda a, z, t: full.predict_proba_tempered(z, T), True)):
+        a_tr, a_va = preds("train", cls_tr, gate), preds("validation", cls_va, gate)
         p = pd.concat([predictions_frame(a_tr), predictions_frame(a_va)], ignore_index=True)
         s = ev.score_splits(p)
         out[label] = (p, a_tr + a_va)
         print(f"{label}: train {s['train']['composite_score']:.1f} type recall {s['train']['fault_type_recall']:.2f} | "
               f"validation {s['validation']['composite_score']:.1f} type recall {s['validation']['fault_type_recall']:.2f}")
     out["E02 naive Bayes (calibrated)"][0].to_csv(ROOT / "results" / "e02_trainval_predictions.csv", index=False)
+    out["E02 + rule gate"][0].to_csv(ROOT / "results" / "e02_gate_trainval_predictions.csv", index=False)
+    # How many E02 machine alerts name a type none of whose symptoms match the evidence?
+    from assist.evidence.rules import rule_scores
+    for label in ("E02 naive Bayes (calibrated)", "E02 + rule gate"):
+        bad = tot = 0
+        for a in out[label][1]:
+            if a.event_class == "MACHINE" and a.fault_type not in ("UNKNOWN", "IMPELLER_WEAR") and a.evidence:
+                tot += 1
+                z = {e.channel: e.z for e in a.evidence}
+                bad += rule_scores(z, cfg[a.asset_id], machine, DEFAULT_K).get(a.fault_type, 0.0) == 0.0
+        print(f"{label}: {bad} of {tot} typed machine alerts have evidence that matches none of the type's symptoms")
 
     # Reliability: stated probability vs observed correct rate for machine alerts (train via leave-one-pump-out + validation)
     recs = []

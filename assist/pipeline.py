@@ -43,6 +43,11 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         sc = ewma_scores(zf, load_context(sorted(feats.asset_id.unique()), data))
         extra = sc.assign(flag=sc.d02_score > d02_limit)[["asset_id", "window_start_utc", "flag"]]
     det = detect(feats, assets, DEFAULT_K, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben, extra=extra)
+    from retrofit_sim.baselines import CH
+    low = {}
+    for aid, idx in zf.groupby('asset_id').groups.items():
+        low[aid] = {CH[k]: float((tf.loc[idx, f'trust_{k}'] < 0.5).mean()) for k in CH if f'z_{k}' in zf and zf.loc[idx, f'z_{k}'].notna().any()}
+    det.attrs['low_trust_fraction'] = low      # share of minutes with trust < 0.5, per pump and channel
     clf = None
     if use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)

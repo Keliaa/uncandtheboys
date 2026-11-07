@@ -28,7 +28,8 @@ BENIGN_TAIL, HS_LIMIT = 60, 2.2
 E02_MODEL = REPO_ROOT / "results" / "e02_model.json"
 
 
-def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True):
+def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
+                 d02_limit: float | None = None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -36,7 +37,12 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     zf = z_frame(feats, assets)
     tf = trust_frame(zf, FLAT_MIN)
     ben = benign_minutes(sorted(feats.asset_id.unique()), data, tail_min=BENIGN_TAIL, hs_limit=HS_LIMIT)
-    det = detect(feats, assets, DEFAULT_K, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben)
+    extra = None
+    if d02_limit is not None:      # D02: add EWMA-of-regression-residual flags to D01
+        from .detect.regression import ewma_scores, load_context
+        sc = ewma_scores(zf, load_context(sorted(feats.asset_id.unique()), data))
+        extra = sc.assign(flag=sc.d02_score > d02_limit)[["asset_id", "window_start_utc", "flag"]]
+    det = detect(feats, assets, DEFAULT_K, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben, extra=extra)
     clf = None
     if use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)

@@ -34,6 +34,18 @@ ASSUMPTIONS = {"labour_rate_eur_h": 80, "downtime_cost_eur_h": 1500, "repair_unp
                "source": "organiser business_case.py defaults + team labour rate"}
 MAX_SIMULATED = 32
 
+# Second alert engine: Elias's pump-assist v2 (generator-free methods), read from its committed result files.
+V2_DIR = C.REPO / "pump-assist-v2"
+V2_TRAINVAL = V2_DIR / "results" / "episodes_trainval_predictions.csv"
+V2_TEST = V2_DIR / "results" / "test_predictions.csv"
+V2_COMPARE = V2_DIR / "results" / "engines_compare.csv"
+ENGINES = {
+    "b4": {"label": "B4 physics/context detector", "suffix": "",
+           "source": "physics-context-detector/results/b4_trainval_predictions.csv"},
+    "v2": {"label": "Pump assist v2 (generator-free methods)", "suffix": "_v2",
+           "source": "pump-assist-v2/results/episodes_trainval_predictions.csv"},
+}
+
 
 class ExportError(RuntimeError):
     pass
@@ -120,7 +132,66 @@ def run_stress(root: Path, params: dict, limit: int) -> tuple[list[Pump], dict]:
 
 
 # ------------------------------------------------------------------------------------------------ scenes
-def build_scenes(pumps: dict, data: Path, params: dict) -> list[tuple[str, dict]]:
+def load_v2_alerts(data: Path) -> pd.DataFrame:
+    """pump-assist v2 alerts (train + validation + test), guarded: the train/validation file must score exactly as
+    pump-assist-v2/results/engines_compare.csv says the v2 engine does."""
+    tv = pd.read_csv(V2_TRAINVAL)
+    ev = _eval_module()
+    s = ev.score_splits(tv, str(data))
+    ref = pd.read_csv(V2_COMPARE)
+    ref = ref[ref.engine == "v2"].set_index("set").composite_score
+    for split in ("train", "validation"):
+        if round(s[split]["composite_score"], 3) != round(float(ref[split]), 3):
+            raise ExportError(f"{V2_TRAINVAL.name} scores {s[split]['composite_score']:.3f} on {split}, "
+                              f"engines_compare.csv says v2 scores {ref[split]}; not the v2 engine output")
+    te = pd.read_csv(V2_TEST)
+    tv["source_row"], te["source_row"] = np.arange(len(tv)) + 2, np.arange(len(te)) + 2
+    tv["source_file"] = "pump-assist-v2/results/" + V2_TRAINVAL.name
+    te["source_file"] = "pump-assist-v2/results/" + V2_TEST.name
+    out = pd.concat([tv, te], ignore_index=True)
+    out["detector"] = "v2"
+    return out
+
+
+def engine_pumps(pumps: list[Pump], alerts: pd.DataFrame) -> list[Pump]:
+    """Copies of the benchmark pumps whose alerts come from another engine (telemetry, expected values and
+    monitoring state stay those of the shared B4 context model)."""
+    out = []
+    for p in pumps:
+        pr = alerts[alerts.asset_id == p.a.asset_id].sort_values("alert_time_utc", kind="stable")
+        out.append(Pump(p.a, p.inp, pr.reset_index(drop=True), p.f, p.alarms, p.split, fz=pr))
+    return out
+
+
+def channels_in_text(evidence: str, available: list) -> list:
+    """Channel keys named in an evidence text ("suction pressure", "vibration rms mm s", ...), in order of mention,
+    limited to the bundle's channels. Used when the engine's wording is not B4's (v2 alerts)."""
+    b4 = C.b4_module()
+    text = str(evidence).lower()
+    hits = []
+    for k in available:
+        names = [b4.NAME.get(k, ""), b4.CH.get(k, "").replace("_", " ")]
+        pos = [text.find(n) for n in names if n and text.find(n) >= 0]
+        if pos:
+            hits.append((min(pos), k))
+    return [k for _, k in sorted(hits)][:4]
+
+
+def select_engine_alert(sc: dict, pred: pd.DataFrame, events: pd.DataFrame) -> pd.Timestamp:
+    """Alert scenes for a non-B4 engine: the earliest alert on the scene pump with the scene's event class that lies
+    inside a labelled event of the scene's fault type (the engine may name the type differently)."""
+    cls = "SENSOR" if sc["fault_type"].startswith("SENSOR") or sc["fault_type"] == "COMMUNICATION_LOSS" else "MACHINE"
+    ev = events[(events.asset_id == sc["asset"]) & (events.fault_type == sc["fault_type"])]
+    on, en = pd.to_datetime(ev.onset_utc, utc=True), pd.to_datetime(ev.end_utc, utc=True)
+    t = pd.to_datetime(pred.alert_time_utc, utc=True)
+    for ti, c in sorted(zip(t, pred.event_class)):
+        if c == cls and ((on <= ti) & (en.isna() | (en >= ti))).any():
+            return ti
+    raise ExportError(f"{sc['asset']}: no {cls} alert inside a labelled {sc['fault_type']} event; "
+                      f"not fabricating the '{sc['title']}' scene")
+
+
+def build_scenes(pumps: dict, data: Path, params: dict, engine: str = "b4") -> list[tuple[str, dict]]:
     """The operator-demo scenes, selected and validated by prepare_demo's own deterministic rules."""
     b4 = C.b4_module()
     benign = pd.read_csv(data / "benign_windows_train_validation.csv")
@@ -138,9 +209,14 @@ def build_scenes(pumps: dict, data: Path, params: dict) -> list[tuple[str, dict]
             extra = {"context_note": f"Recorded operating change: {win['note']} "
                                      f"({C.utc(win['label_start_utc']).strftime('%H:%M')}–"
                                      f"{C.utc(win['label_end_utc']).strftime('%H:%M')} UTC)."}
-        else:
+        elif engine == "b4":
             pdm.validate_alert_scene(sc, p.pred, events)
             focus = C.utc(sc["alert_time"])
+            start = focus - pd.Timedelta(minutes=sc["lead_min"])
+            end = focus + pd.Timedelta(minutes=sc["tail_min"])
+            extra = {}
+        else:
+            focus = select_engine_alert(sc, p.pred, events)
             start = focus - pd.Timedelta(minutes=sc["lead_min"])
             end = focus + pd.Timedelta(minutes=sc["tail_min"])
             extra = {}
@@ -155,7 +231,16 @@ def build_scenes(pumps: dict, data: Path, params: dict) -> list[tuple[str, dict]
                          "cleared_utc": None if cl is None else C.iso(cl)})   # clearing after the scene end is unknown
         b["plant_alarms"] = rows
         b["label"] = BUNDLE_LABEL
-        out.append((f"scene_{sc['chapter']}_{sc['id']}.json", C.clean(b)))
+        b["scene"]["engine"] = engine
+        if engine != "b4":
+            for x in b["alerts"]:
+                src = p.fz[(p.fz.alert_time_utc == x["alert_time_utc"]) & (p.fz.fault_type == x["fault_type"])].iloc[0]
+                x["source_ref"] = f"{engine.upper()} {x['asset_id']} {x['alert_time_utc']} {x['fault_type']}"
+                x["source_file"], x["source_row"] = src.source_file, int(src.source_row)
+                if not x["evidence_channels"]:
+                    x["evidence_channels"] = channels_in_text(x["evidence"], list(b["channels"]))
+        name = f"scene_{sc['chapter']}_{sc['id']}{ENGINES[engine]['suffix']}.json"
+        out.append((name, C.clean(b)))
         log(f"  scene {sc['chapter']} {sc['id']}: {len(b['minutes']['t'])} minutes, {len(b['alerts'])} alerts, "
             f"{len(rows)} plant alarms")
     return out
@@ -165,7 +250,7 @@ def build_scenes(pumps: dict, data: Path, params: dict) -> list[tuple[str, dict]
 FLEET_BUDGET = 2_500_000
 
 
-def build_fleet(pumps: list[Pump], params: dict) -> tuple[dict, list[Pump]]:
+def build_fleet(pumps: list[Pump], params: dict, label: str = FLEET_LABEL) -> tuple[dict, list[Pump]]:
     """All benchmark pumps plus simulated pumps in order; simulated pumps are dropped from the end (deterministically)
     until the file fits the size budget. Returns the document and the pumps it contains."""
     assets = []
@@ -176,7 +261,7 @@ def build_fleet(pumps: list[Pump], params: dict) -> tuple[dict, list[Pump]]:
                        "instrumentation_tier": p.a.instrumentation_tier, "split": p.split, "snapshots": snaps})
     kept = list(pumps)
     while True:
-        doc = C.clean({"format": "fleet-replay/1", "label": FLEET_LABEL, "aligned": "monitoring_day",
+        doc = C.clean({"format": "fleet-replay/1", "label": label, "aligned": "monitoring_day",
                        "assets": assets[:len(kept)]})
         if len(C.dumps(doc).encode()) < FLEET_BUDGET or kept[-1].split != "simulated":
             return doc, kept
@@ -272,6 +357,19 @@ def detector_summary(data: Path, stress_raw: dict) -> dict:
             b1r.append(ev.score_stress_dir(ev.b1_predictions(str(d / "public")), str(d)))
         res["b4"]["simulated"] = _pooled(b4r)
         res["b1"]["simulated"] = _pooled(b1r)
+    v2 = pd.read_csv(V2_TRAINVAL)
+    s = ev.score_splits(v2, str(data))
+    res["v2"] = {"train": _metrics(s["train"]), "validation": _metrics(s["validation"])}
+    cmp_ = pd.read_csv(V2_COMPARE)
+    st = cmp_[(cmp_.engine == "v2") & cmp_.set.str.match(r"stress_\d+$")]
+    if len(st):     # pump-assist-v2's own stress comparison (seeds it generated); medians are not published there
+        res["v2"]["simulated"] = {
+            "composite": float(st.composite_score.mean()), "event_recall": float(st.event_recall.mean()),
+            "fault_type_recall": float(st.fault_type_recall.mean()), "class_recall": float(st.class_recall.mean()),
+            "false_excess_alerts_per_asset_day": float(st.false_alerts_per_asset_day.mean()),
+            "median_lead_time_to_deadline_h": None, "median_delay_after_detectable_h": None,
+            "events": int(st.events.sum()), "fleets": len(st),
+            "source": "pump-assist-v2/results/engines_compare.csv"}
     return res
 
 
@@ -302,21 +400,34 @@ def export(out: Path, data: Path, stress_root: Path, max_sim: int) -> dict:
     log(f"running B4 on simulated pumps from {stress_root} ...")
     sim, stress_raw = run_stress(stress_root, params, max_sim)
     by_id = {p.a.asset_id: p for p in bench}
-    log("building scene bundles ...")
+    log("building B4 scene bundles ...")
     scenes = build_scenes(by_id, data, params)
     log("building fleet.json ...")
     fleet, in_fleet = build_fleet(bench + sim, params)
     n_sim = sum(p.split == "simulated" for p in in_fleet)
     log(f"  fleet: {len(in_fleet)} pumps ({n_sim} of {len(sim)} simulated kept within the size budget)")
-    log("building impact.json (scoring B1 and B4) ...")
+    log("loading pump-assist v2 alerts ...")
+    v2 = engine_pumps(bench, load_v2_alerts(data))
+    log(f"  {sum(len(p.pred) for p in v2)} v2 alerts on {len(v2)} benchmark pumps")
+    log("building v2 scene bundles ...")
+    scenes_v2 = build_scenes({p.a.asset_id: p for p in v2}, data, params, engine="v2")
+    log("building fleet_v2.json ...")
+    fleet_v2, in_v2 = build_fleet(v2, params, label=FLEET_LABEL + " · pump-assist v2 alerts")
+    log("building impact.json (scoring B1, B4 and v2) ...")
     impact = C.clean({"format": "impact/1", "label": IMPACT_LABEL, "assumptions": ASSUMPTIONS,
                       "maintenance": maintenance_summary(data), "detector": detector_summary(data, stress_raw),
-                      "tier_ablation": tier_ablation(), "per_pump_exposure": exposure(in_fleet)})
+                      "tier_ablation": tier_ablation(), "per_pump_exposure": exposure(in_fleet),
+                      "per_pump_exposure_by_engine": {"b4": exposure(in_fleet), "v2": exposure(in_v2)}})
+    sc = lambda lst: [{"chapter": b["scene"]["chapter"], "id": n[:-5], "file": n} for n, b in lst]
     manifest = {"format": pdm.BUNDLE_FORMAT, "label": BUNDLE_LABEL, "generated_utc": commit_ts, "source_commit": sha,
-                "scenes": [{"chapter": b["scene"]["chapter"], "id": n[:-5], "file": n} for n, b in scenes],
-                "fleet": "fleet.json", "impact": "impact.json"}
+                "scenes": sc(scenes), "fleet": "fleet.json", "impact": "impact.json", "default_engine": "b4",
+                "engines": [{"id": "b4", "label": ENGINES["b4"]["label"], "alerts_source": ENGINES["b4"]["source"],
+                             "scenes": sc(scenes), "fleet": "fleet.json", "impact": "impact.json"},
+                            {"id": "v2", "label": ENGINES["v2"]["label"], "alerts_source": ENGINES["v2"]["source"],
+                             "scenes": sc(scenes_v2), "fleet": "fleet_v2.json", "impact": "impact.json"}]}
     files = {"manifest.json": json.dumps(manifest, ensure_ascii=False, indent=1) + "\n",
-             **{n: C.dumps(b) for n, b in scenes}, "fleet.json": C.dumps(fleet), "impact.json": C.dumps(impact)}
+             **{n: C.dumps(b) for n, b in scenes + scenes_v2}, "fleet.json": C.dumps(fleet),
+             "fleet_v2.json": C.dumps(fleet_v2), "impact.json": C.dumps(impact)}
     out.mkdir(parents=True, exist_ok=True)
     for n, txt in files.items():
         (out / n).write_text(txt, encoding="utf-8")

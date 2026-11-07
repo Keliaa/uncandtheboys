@@ -33,6 +33,14 @@ EVENT_ID_RE = re.compile(r"\b(?:PUMP|STRESS)-\d\d-E\d\d\b")
 CAUSAL_SAMPLES = 20
 
 
+def budget_for(name: str) -> int:
+    if name.startswith("fleet"):
+        return BUDGET["fleet.json"]
+    if name.startswith("impact"):
+        return BUDGET["impact.json"]
+    return BUDGET["scene"]
+
+
 class Checker:
     def __init__(self):
         self.errors = []
@@ -174,7 +182,10 @@ def _source(aid: str, data: Path, stress_root: Path):
     return data, aid
 
 
-def causal_check(fleet: dict, data: Path, stress_root: Path, ck: Checker, n: int = CAUSAL_SAMPLES) -> int:
+def causal_check(fleet: dict, data: Path, stress_root: Path, ck: Checker, n: int = CAUSAL_SAMPLES,
+                 alerts_file: Path | None = None) -> int:
+    """B4 fleet: alerts come from the truncated B4 run. Other engines (alerts_file): their published alerts up to
+    the cut, with telemetry, expected values and monitoring state from the truncated B4 run."""
     b4 = C.b4_module()
     params = C.frozen_params()
     pool = [(a["asset_id"], s) for a in fleet["assets"] if a["split"] != "test" for s in a["snapshots"]
@@ -192,6 +203,10 @@ def causal_check(fleet: dict, data: Path, stress_root: Path, ck: Checker, n: int
         cut = C.utc(a.window_start_utc) + pd.Timedelta(minutes=snap["offset_min"])
         inp = C.truncate_inputs(b4.load_inputs(str(src), [src_id]), cut)
         pred, f = C.run_b4(inp, params)
+        if alerts_file is not None:
+            al = pd.read_csv(alerts_file)
+            al = al[al.asset_id == src_id]
+            pred = al[pd.to_datetime(al.alert_time_utc, utc=True) <= cut]
         pred = pred.assign(asset_id=aid)
         a["asset_id"] = aid
         st = C.PumpState(a, f, pred, C.truncate_alarms(alarms, cut), params)
@@ -218,13 +233,20 @@ def main(argv=None) -> int:
         has(man, ["format", "label", "generated_utc", "source_commit", "scenes", "fleet", "impact"], "manifest", ck)
         generic("manifest.json", man, ck)
         names = [s["file"] for s in man.get("scenes", [])] + [man.get("fleet"), man.get("impact")]
+        fleets = {man.get("fleet")}
+        for e in man.get("engines", []):
+            if has(e, ["id", "label", "alerts_source", "scenes", "fleet", "impact"], "manifest.engine", ck):
+                names += [s["file"] for s in e["scenes"]] + [e["fleet"], e["impact"]]
+                fleets.add(e["fleet"])
+                ck.check(len(e["scenes"]) == len(man["scenes"]), f"engine {e['id']}: scene count differs")
+        names = list(dict.fromkeys(names))
         for s in man.get("scenes", []):
             has(s, ["chapter", "id", "file"], "manifest.scene", ck)
         for n in names:
             if not ck.check(n and (d / n).exists(), f"manifest lists {n}, which does not exist"):
                 continue
             size = (d / n).stat().st_size
-            budget = BUDGET.get(n, BUDGET["scene"])
+            budget = budget_for(n)
             ck.check(size < budget, f"{n}: {size} bytes over budget {budget}")
             doc = load(d / n, ck)
             if doc is None:
@@ -232,7 +254,7 @@ def main(argv=None) -> int:
             docs[n] = doc
             generic(n, doc, ck)
             rows.append((n, size))
-            if n == man.get("fleet"):
+            if n in fleets:
                 check_fleet(doc, ck)
             elif n == man.get("impact"):
                 check_impact(doc, ck)
@@ -242,10 +264,20 @@ def main(argv=None) -> int:
     causal = 0
     if fleet and not a.no_causal and not ck.errors:
         causal = causal_check(fleet, Path(a.data), Path(a.stress_root), ck)
+        for e in man.get("engines", []):
+            if e["fleet"] != man.get("fleet") and e["fleet"] in docs:
+                causal += causal_check(docs[e["fleet"]], Path(a.data), Path(a.stress_root), ck, n=10,
+                                       alerts_file=C.REPO / e["alerts_source"])
 
     print("\n| file | size KB | budget KB |\n|---|---:|---:|")
     for n, s in rows:
-        print(f"| {n} | {s / 1024:.0f} | {BUDGET.get(n, BUDGET['scene']) / 1024:.0f} |")
+        print(f"| {n} | {s / 1024:.0f} | {budget_for(n) / 1024:.0f} |")
+    for e in (man or {}).get("engines", []):
+        fd = docs.get(e["fleet"])
+        if fd:
+            lv = pd.Series([s["level"] or "none" for x in fd["assets"] for s in x["snapshots"]]).value_counts()
+            print(f"engine {e['id']} ({e['fleet']}, {len(fd['assets'])} pumps): "
+                  + ", ".join(f"{k} {v}" for k, v in lv.items()))
     if fleet:
         sp = pd.Series([x["split"] for x in fleet["assets"]]).value_counts()
         snaps = [s for x in fleet["assets"] for s in x["snapshots"]]
@@ -262,7 +294,7 @@ def main(argv=None) -> int:
         mf = imp["maintenance"]["fleet"]
         print(f"maintenance: {mf['records']} records, {mf['no_finding_records']} with no finding, "
               f"{mf['no_finding_share_hours']:.1%} of hours, {mf['no_finding_hours']:.0f} h no-finding work")
-        for det in ("b1", "b4"):
+        for det in [d for d in ("b1", "b4", "v2") if d in imp["detector"]]:
             r = imp["detector"][det]
             sim = r.get("simulated", {}).get("composite")
             print(f"{det.upper()} composite: train {r['train']['composite']}, validation {r['validation']['composite']}"

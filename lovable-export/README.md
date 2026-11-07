@@ -47,6 +47,26 @@ frozen predictions disagree.
 5. No em dashes in any text (replaced by `-`).
 6. Size budget: scene bundle < 1 MB, `fleet.json` < 2.5 MB, `impact.json` < 300 KB.
 
+## Engines (switchable in the cockpit)
+
+The cockpit can show two alert engines; `manifest.json` lists them in `engines` (`default_engine` is `b4`, and the
+top-level `scenes`/`fleet`/`impact` keys stay the B4 ones so an engine-unaware UI keeps working).
+
+| id | alerts | files |
+|---|---|---|
+| `b4` | B4 detector re-run with frozen parameters, checked against `physics-context-detector/results/b4_*_predictions.csv` | `scene_*.json`, `fleet.json` (benchmark + simulated pumps) |
+| `v2` | pump-assist v2, Elias's generator-free engine (`engine: v2` in `pump-assist-v2/configs/pipeline.yaml`), read from `pump-assist-v2/results/episodes_trainval_predictions.csv` + `test_predictions.csv`. The export refuses the file unless it scores exactly what `engines_compare.csv` reports for v2. | `scene_*_v2.json`, `fleet_v2.json` (12 benchmark pumps; v2 publishes no alerts for the simulated pumps) |
+
+Both engines share `impact.json` (`detector.b1/b4/v2`, `per_pump_exposure_by_engine`). Telemetry, expected values,
+deviation and monitoring status are the same for both (B4's context model; v2 publishes alerts, not per-minute expected
+values). v2 scenes use the same windows rules: the quiet scene is prepare_demo's rule with v2 alerts; an alert scene
+is the earliest v2 alert on the scene pump with the scene's event class inside a labelled event of the scene's fault
+type (v2 may name the type differently, e.g. SENSOR_CALIBRATION_SHIFT inside the PUMP-09 drift). When v2's evidence
+text is not B4's wording, `evidence_channels` are read from the channel names in the text. The causal re-check also
+samples 10 `fleet_v2.json` snapshots.
+
+Note: `pump-assist-v2/results/current_trainval_predictions.csv` is the B4-engine output (it scores 92.3 / 95.7), not v2.
+
 ## Files
 
 ### manifest.json (`operator-demo-replay/1`)

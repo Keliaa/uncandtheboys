@@ -155,3 +155,29 @@ def test_validator_rejects_em_dash_nan_and_labels(tmp_path):
     (tmp_path / "bad.json").write_text('{"x": NaN}')
     ck = V.Checker()
     assert V.load(tmp_path / "bad.json", ck) is None and ck.errors
+
+
+# ------------------------------------------------------------------------------- second engine (v2)
+def test_channels_in_text_reads_v2_wording():
+    avail = ["v", "a", "ps", "pd", "i", "pw"]
+    assert X.channels_in_text("vibration rms mm s deviates alone (z = +18.1)", avail) == ["v"]
+    assert X.channels_in_text("suction pressure is low (z = -8.4); motor power up", avail) == ["ps", "pw"]
+    assert X.channels_in_text("nothing named here", avail) == []
+
+
+def test_select_engine_alert_needs_class_inside_labelled_event():
+    ev = pd.DataFrame({"asset_id": ["P"], "fault_type": ["SENSOR_DRIFT"], "onset_utc": ["2025-01-02T00:00:00Z"],
+                       "end_utc": ["2025-01-03T00:00:00Z"]})
+    pred = pd.DataFrame({"alert_time_utc": ["2025-01-01T12:00:00Z", "2025-01-02T05:00:00Z", "2025-01-02T06:00:00Z"],
+                         "event_class": ["SENSOR", "MACHINE", "SENSOR"]})
+    sc = {"asset": "P", "fault_type": "SENSOR_DRIFT", "title": "t"}
+    assert X.select_engine_alert(sc, pred, ev) == pd.Timestamp("2025-01-02T06:00:00Z")
+    with pytest.raises(X.ExportError):
+        X.select_engine_alert(sc, pred.iloc[:2], ev)
+
+
+@pytest.mark.skipif(not X.V2_TRAINVAL.exists(), reason="pump-assist-v2 results not present")
+def test_v2_alert_files_have_submission_columns():
+    for f in (X.V2_TRAINVAL, X.V2_TEST):
+        cols = set(pd.read_csv(f).columns)
+        assert {"asset_id", "alert_time_utc", "event_class", "fault_type", "evidence", "recommended_action"} <= cols

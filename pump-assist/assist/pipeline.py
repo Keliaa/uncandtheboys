@@ -32,7 +32,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
                  t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
-                 features: pd.DataFrame | None = None, gate=True, regime: str = "speed"):
+                 features: pd.DataFrame | None = None, gate=True, regime: str = "speed", d07_models=None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -63,6 +63,10 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         from .detect.pca import pca_flags
         pf = pca_flags(zf, assets, d03_models)[["asset_id", "window_start_utc", "flag"]]
         extra = pf if extra is None else pd.concat([extra, pf]).groupby(["asset_id", "window_start_utc"], as_index=False).flag.max()
+    if d07_models is not None:     # D07: add autoencoder reconstruction-error flags
+        from .detect.autoencoder import autoencoder_flags
+        af = autoencoder_flags(zf, assets, d07_models)[["asset_id", "window_start_utc", "flag"]]
+        extra = af if extra is None else pd.concat([extra, af]).groupby(["asset_id", "window_start_utc"], as_index=False).flag.max()
     det = detect(feats, assets, DEFAULT_K if d01_flags else 1e9, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben, extra=extra)
     from retrofit_sim.baselines import CH
     low = {}

@@ -8,7 +8,7 @@ Splits are kept: settings are chosen on train pumps (PUMP-01 to 07), validation 
 run with frozen settings and never scored or tuned. `assist/splits.py` has the guards (`require_split`, `splits=` arguments).
 
 ```
-assist/      code: alert record (S01), config loader (S02), ingest (I01, I02 replay, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants, T02 after-maintenance steps, E03 sensor-vs-machine; E04 tree for comparison; D08 change times),
+assist/      code: alert record (S01), config loader (S02), ingest (I01, I02 replay, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants, T02 after-maintenance steps, E03 sensor-vs-machine; E04 tree for comparison; D08 change times; D05 mode clusters, not adopted),
              evidence (E01, E02), recommend (R01, R02), pipeline.py (frozen end-to-end system), report.py (U02)
 app/         Streamlit operator app (U01) with a replay-demo mode (C03)
 configs/     machine file (channels, symptom table, action table, physics) and generated per-asset files

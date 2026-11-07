@@ -32,7 +32,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
                  t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
-                 features: pd.DataFrame | None = None, gate=True):
+                 features: pd.DataFrame | None = None, gate=True, regime: str = "speed"):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -48,7 +48,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
                 feats.loc[rows, [c for c in feats.columns if c.startswith(ch + "__")]] = float("nan")
             cfg[aid].channels_available = [c for c in cfg[aid].channels_available if c in keep]
         vib_ids = [a for a in vib_ids if "vibration_rms_mm_s" in cfg[a].channels_available]
-    zf = z_frame(feats, assets)
+    zf = z_frame(feats, assets, regime, data)
     tf = trust_frame(zf, FLAT_MIN)
     if baseline != "static":      # T01: online expected values (always learning or guarded)
         from .detect.baseline import adaptive_z

@@ -24,6 +24,10 @@
 | + V02 spectral typing (option, off in frozen system) | validation | 84.709 | 0.9 | 1.0 | 0.818 | 0.143 | 0.863 | 0.667 | 1.0 |
 | E04 decision tree instead of E02 (comparison, not adopted) | train | 58.616 | 0.613 | 0.731 | 0.528 | 0.347 | 0.637 | 0.385 | 0.654 |
 | E04 decision tree instead of E02 (comparison, not adopted) | validation | 80.664 | 0.9 | 1.0 | 0.818 | 0.143 | 0.855 | 0.556 | 0.889 |
+| D05 operating-mode clusters: K-means (comparison, not adopted) | train | 61.034 | 0.6 | 0.808 | 0.477 | 0.469 | 0.677 | 0.462 | 0.731 |
+| D05 operating-mode clusters: K-means (comparison, not adopted) | validation | 73.659 | 0.783 | 1.0 | 0.643 | 0.357 | 0.903 | 0.444 | 0.889 |
+| D05 operating-mode clusters: GMM (comparison, not adopted) | train | 63.544 | 0.629 | 0.846 | 0.5 | 0.449 | 0.728 | 0.462 | 0.769 |
+| D05 operating-mode clusters: GMM (comparison, not adopted) | validation | 76.114 | 0.818 | 1.0 | 0.692 | 0.286 | 0.89 | 0.444 | 1.0 |
 | + E03 sensor/machine rules + drift-vs-shift typing (frozen system) | train | 64.073 | 0.667 | 0.808 | 0.568 | 0.327 | 0.676 | 0.462 | 0.731 |
 | + E03 sensor/machine rules + drift-vs-shift typing (frozen system) | validation | 85.535 | 0.9 | 1.0 | 0.818 | 0.143 | 0.904 | 0.667 | 1.0 |
 | + T02 after-maintenance alerts (frozen system) | train | 63.111 | 0.667 | 0.808 | 0.568 | 0.327 | 0.676 | 0.423 | 0.731 |

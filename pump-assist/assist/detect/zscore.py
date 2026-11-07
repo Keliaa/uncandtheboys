@@ -21,9 +21,17 @@ DEFAULT_K = 8.0       # chosen on train pumps only (results/d01_grid.csv)
 DEFAULT_PERSIST = 10   # minutes (worklist D01)
 
 
-def z_frame(features: pd.DataFrame, assets: pd.DataFrame) -> pd.DataFrame:
-    """Per-minute z-scores (columns z_<key>) for the pumps in `features`. Each pump is scaled on itself."""
-    return zscores(regime_frame(features, assets))
+def z_frame(features: pd.DataFrame, assets: pd.DataFrame, regime: str = "speed", data=None) -> pd.DataFrame:
+    """Per-minute z-scores (columns z_<key>) for the pumps in `features`. Each pump is scaled on itself.
+
+    regime: 'speed' (speed bands, D01) or 'kmeans' / 'gmm' (operating-mode clusters, D05; needs operating_context.csv in `data`)."""
+    f = regime_frame(features, assets)
+    if regime != "speed":
+        from ..splits import DATA_FULL
+        from .modes import cluster_regimes
+        from .regression import load_context
+        f["regime"] = cluster_regimes(f, load_context(sorted(f.asset_id.unique()), data or DATA_FULL), regime)
+    return zscores(f)
 
 
 def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,

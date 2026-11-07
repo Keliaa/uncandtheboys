@@ -1,0 +1,11 @@
+asset_id,method,speed_band_modes,cluster_modes,steady_minutes_unassigned_%
+PUMP-03,kmeans,1,3,0.0
+PUMP-05,kmeans,1,3,0.0
+PUMP-01,kmeans,10,3,0.0
+PUMP-03,gmm,1,6,0.0
+PUMP-05,gmm,1,6,0.0
+PUMP-01,gmm,10,6,0.0
+PUMP-09,kmeans,1,3,0.0
+PUMP-08,kmeans,10,6,0.0
+PUMP-09,gmm,1,6,0.0
+PUMP-08,gmm,10,6,0.0

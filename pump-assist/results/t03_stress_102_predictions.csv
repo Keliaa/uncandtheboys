@@ -1,0 +1,45 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+STRESS-01,2025-11-06T16:15:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -8.8),Inspect and clean the suction strainer.
+STRESS-01,2025-11-07T11:49:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -42.2); discharge pressure is low (z = -17.0),Inspect and clean the suction strainer.
+STRESS-01,2025-11-08T02:10:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -40.9); discharge pressure is low (z = -16.6),Inspect and clean the suction strainer.
+STRESS-01,2025-11-08T02:57:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,After the maintenance stop the new baseline of suction pressure kpa is -40.1 spreads from the old one; After the maintenance stop the new baseline of discharge pressure kpa is -16.0 spreads from the old one,Inspect and clean the suction strainer.
+STRESS-01,2025-11-08T12:18:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,After the maintenance stop the new baseline of suction pressure kpa is -41.2 spreads from the old one; After the maintenance stop the new baseline of discharge pressure kpa is -16.5 spreads from the old one,Inspect and clean the suction strainer.
+STRESS-02,2025-12-12T16:30:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-02,2025-12-14T06:40:00Z,SENSOR,SENSOR_STUCK,0.6,motor_current_a has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+STRESS-02,2025-12-15T00:38:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +14.8),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-12-15T03:53:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-02,2025-12-15T13:42:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +28.3),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-12-16T02:27:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +37.1),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-12-16T16:00:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +47.6),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-12-17T05:26:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +60.7),Inspect the pump. Examine the channels in the evidence.
+STRESS-02,2025-12-17T18:33:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +71.4),Inspect the pump. Examine the channels in the evidence.
+STRESS-03,2025-04-11T00:09:00Z,SENSOR,SENSOR_STUCK,0.6,discharge_pressure_kpa has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+STRESS-05,2025-07-15T03:41:00Z,MACHINE,MISALIGNMENT,0.6237,vibration rms mm s deviates alone (z = +8.5); related channels are normal,Examine the coupling alignment.
+STRESS-05,2025-07-15T05:36:00Z,MACHINE,BEARING_WEAR,0.5133,vibration rms mm s deviates alone (z = +9.3); related channels are normal,Inspect the bearing and the lubrication. Plan a bearing replacement.
+STRESS-05,2025-07-16T23:31:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -9.3),Inspect and clean the suction strainer.
+STRESS-05,2025-07-17T00:17:00Z,MACHINE,UNKNOWN,0.3547,After the maintenance stop the new baseline of suction pressure kpa is -8.5 spreads from the old one,Inspect the pump. Examine the channels in the evidence.
+STRESS-05,2025-07-17T05:45:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+STRESS-05,2025-07-17T23:31:00Z,MACHINE,BEARING_WEAR,1.0,suction pressure is low (z = -38.1); discharge pressure is low (z = -17.4); flow is low (z = -12.8),Inspect the bearing and the lubrication. Plan a bearing replacement.
+STRESS-05,2025-07-18T23:31:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -60.6); discharge pressure is low (z = -28.0); flow is low (z = -25.1),Inspect and clean the suction strainer.
+STRESS-05,2025-07-19T05:31:00Z,MACHINE,IMPELLER_WEAR,0.1171,Head is 2.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+STRESS-06,2025-07-03T03:07:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +18.6),Inspect the pump. Examine the channels in the evidence.
+STRESS-06,2025-07-03T21:46:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+STRESS-06,2025-07-03T22:30:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +17.6),Inspect the pump. Examine the channels in the evidence.
+STRESS-06,2025-07-04T16:08:00Z,MACHINE,UNKNOWN,0.3685,discharge pressure is high (z = +8.8),Inspect the pump. Examine the channels in the evidence.
+STRESS-06,2025-07-05T03:28:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,discharge pressure kpa deviates alone (z = +15.9); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-06,2025-07-05T16:08:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,discharge pressure kpa deviates alone (z = +16.7); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-06,2025-07-05T18:32:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +16.3),Do a performance test. Examine the impeller and the wear rings.
+STRESS-06,2025-07-06T07:45:00Z,MACHINE,DISCHARGE_RESTRICTION,0.5,discharge pressure is high (z = +17.1),Examine the discharge valves and the heat exchanger.
+STRESS-06,2025-07-06T08:09:00Z,MACHINE,DISCHARGE_RESTRICTION,0.6986,After the maintenance stop the new baseline of discharge pressure kpa is +16.8 spreads from the old one,Examine the discharge valves and the heat exchanger.
+STRESS-06,2025-07-06T18:10:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,discharge pressure kpa deviates alone (z = +15.4); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+STRESS-06,2025-07-07T00:50:00Z,MACHINE,DISCHARGE_RESTRICTION,0.5,discharge pressure is high (z = +15.6),Examine the discharge valves and the heat exchanger.
+STRESS-06,2025-07-07T12:09:00Z,MACHINE,DISCHARGE_RESTRICTION,0.6749,After the maintenance stop the new baseline of discharge pressure kpa is +16.2 spreads from the old one,Examine the discharge valves and the heat exchanger.
+STRESS-06,2025-07-07T14:54:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +16.7),Do a performance test. Examine the impeller and the wear rings.
+STRESS-06,2025-07-07T20:10:00Z,MACHINE,DISCHARGE_RESTRICTION,0.6614,After the maintenance stop the new baseline of discharge pressure kpa is +15.9 spreads from the old one,Examine the discharge valves and the heat exchanger.
+STRESS-06,2025-07-07T22:35:00Z,MACHINE,DISCHARGE_RESTRICTION,0.5,discharge pressure is high (z = +15.4),Examine the discharge valves and the heat exchanger.
+STRESS-07,2025-10-14T18:34:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +8.4),Inspect the pump. Examine the channels in the evidence.
+STRESS-07,2025-10-15T07:30:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +25.1),Inspect the pump. Examine the channels in the evidence.
+STRESS-07,2025-10-15T09:01:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+STRESS-07,2025-10-15T10:08:00Z,MACHINE,MISALIGNMENT,0.7369,"motor current is high (z = +28.6); Spectrum at 2025-10-15 06:27: 1x 3.1, 2x 1.0, 3x 1.0 times the start value (the pattern does not clearly show misalignment)",Examine the coupling alignment.
+STRESS-07,2025-10-15T23:31:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,motor current is high (z = +45.3),Inspect and clean the suction strainer.
+STRESS-08,2025-08-05T00:29:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.

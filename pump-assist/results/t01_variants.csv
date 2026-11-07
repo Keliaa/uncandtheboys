@@ -1,0 +1,4 @@
+variant,train,validation,recall_train,recall_val,FA_day_train,FA_day_val,slow_faults_detected,alerts
+static,61.8,81.9,0.77,1.0,0.27,0.14,8/8,94
+always,54.0,63.2,0.69,0.78,0.37,0.21,6/8,86
+guarded,61.2,81.9,0.77,1.0,0.29,0.14,8/8,93

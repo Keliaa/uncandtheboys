@@ -1,0 +1,87 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-01,2025-08-13T02:27:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7268,suction pressure kpa deviates alone (z = -8.7); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-01,2025-08-13T05:36:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -10.6),Inspect and clean the suction strainer.
+PUMP-01,2025-08-14T13:59:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+PUMP-02,2025-12-02T02:56:00Z,MACHINE,IMPELLER_WEAR,0.1041,Head is 2.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-03T00:09:00Z,MACHINE,IMPELLER_WEAR,0.248,Head is 5.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-03T01:27:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,suction_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-03T02:36:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-03T13:59:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7783,suction pressure kpa deviates alone (z = +9.3); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-03T14:19:00Z,MACHINE,IMPELLER_WEAR,0.3496,Head is 7.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-03T23:06:00Z,MACHINE,BEARING_WEAR,1.0,"suction pressure is high (z = +9.2); vibration accel rms is high (z = +8.5); Vibration snapshot at 2025-12-03 15:29 shows a change: RMS 2.05 x start value, crest factor +5.28, kurtosis +28.87; Envelope spectrum at 2025-12-03 15:29: peak at BPFO (outer race) is 28 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-02,2025-12-04T05:15:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.8195,suction pressure kpa deviates alone (z = +9.8); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-04T05:21:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-04T05:35:00Z,MACHINE,IMPELLER_WEAR,0.4479,Head is 9.0 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-02,2025-12-04T18:08:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-04T21:40:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7426,suction pressure kpa deviates alone (z = +8.9); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-04T22:00:00Z,MACHINE,IMPELLER_WEAR,0.5628,Head is 11.3 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-02,2025-12-05T12:44:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,suction pressure kpa deviates alone (z = -22.3); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-05T18:15:00Z,MACHINE,BEARING_WEAR,1.0,"suction pressure is low (z = -17.7); vibration rms is high (z = +10.7); Vibration snapshot at 2025-12-05 15:29 shows a change: RMS 5.16 x start value, crest factor +6.74, kurtosis +43.99; Envelope spectrum at 2025-12-05 15:29: peak at BPFO (outer race) is 25 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-02,2025-12-06T00:36:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-02,2025-12-06T09:43:00Z,MACHINE,BEARING_WEAR,1.0,"suction pressure is low (z = -12.1); bearing temp is high (z = +11.7); Vibration snapshot at 2025-12-06 07:29 shows a change: RMS 6.91 x start value, crest factor +7.51, kurtosis +46.57; Envelope spectrum at 2025-12-06 07:29: peak at BPFO (outer race) is 25 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-02,2025-12-06T23:32:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,vibration accel rms is low (z = -40.2); vibration rms is low (z = -16.3); suction pressure is low (z = -10.4),Inspect and clean the suction strainer.
+PUMP-02,2025-12-07T11:40:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,vibration accel rms is low (z = -24.5),Inspect and clean the suction strainer.
+PUMP-02,2025-12-07T23:25:00Z,MACHINE,UNKNOWN,0.0,vibration accel rms is low (z = -15.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-04T00:05:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +9.3); motor current is low (z = -8.7),Do a performance test. Examine the impeller and the wear rings.
+PUMP-03,2026-03-06T06:00:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is low (z = -11.2),Do a performance test. Examine the impeller and the wear rings.
+PUMP-03,2026-03-06T06:44:00Z,MACHINE,UNKNOWN,0.0,motor current is high (z = +9.1),Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-16T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1435,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-16T23:49:00Z,MACHINE,IMPELLER_WEAR,0.1453,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-17T23:50:00Z,MACHINE,IMPELLER_WEAR,0.1431,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-18T05:58:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-18T10:47:00Z,MACHINE,BEARING_WEAR,0.593,"vibration rms mm s deviates alone (z = +8.7); related channels are normal; Vibration snapshot at 2025-06-18 08:00 shows a change: RMS 2.43 x start value, crest factor +4.51, kurtosis +22.37; Envelope spectrum at 2025-06-18 08:00: peak at BPFO (outer race) is 35 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-18T14:40:00Z,MACHINE,MISALIGNMENT,0.8068,"vibration rms mm s deviates alone (z = +10.0); related channels are normal; Spectrum at 2025-06-18 12:00: 1x 3.2, 2x 1.0, 3x 2.8 times the start value (the pattern does not clearly show misalignment)",Examine the coupling alignment.
+PUMP-04,2025-06-18T22:01:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-18T22:01:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,flow_m3_h varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-18T23:48:00Z,MACHINE,IMPELLER_WEAR,0.1439,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-19T00:06:00Z,MACHINE,BEARING_WEAR,0.5229,"vibration rms mm s deviates alone (z = +8.2); related channels are normal; Vibration snapshot at 2025-06-19 00:00 shows a change: RMS 3.39 x start value, crest factor +4.45, kurtosis +26.84; Envelope spectrum at 2025-06-19 00:00: peak at BPFO (outer race) is 38 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-19T04:18:00Z,MACHINE,MISALIGNMENT,0.7679,"vibration rms mm s deviates alone (z = +10.1); related channels are normal; Spectrum at 2025-06-19 04:00: 1x 4.1, 2x 0.9, 3x 2.7 times the start value (the pattern does not clearly show misalignment)",Examine the coupling alignment.
+PUMP-04,2025-06-19T08:57:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-19T16:34:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-19T17:59:00Z,MACHINE,IMPELLER_WEAR,0.1417,Head is 2.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-19T22:31:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-20T07:52:00Z,MACHINE,IMPELLER_WEAR,0.1419,Head is 2.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-20T15:14:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-20T15:14:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_accel_rms_g varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-20T15:14:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,bearing_temp_c varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-20T23:33:00Z,MACHINE,IMPELLER_WEAR,1.0,flow is low (z = -8.3),Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-20T23:51:00Z,MACHINE,IMPELLER_WEAR,0.1415,Head is 2.8 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-21T00:10:00Z,MACHINE,BEARING_WEAR,1.0,"flow is low (z = -14.2); motor speed is low (z = -11.9); motor power is low (z = -10.1); Vibration snapshot at 2025-06-21 00:00 shows a change: RMS 8.80 x start value, crest factor +6.27, kurtosis +31.27; Envelope spectrum at 2025-06-21 00:00: peak at BPFO (outer race) is 37 x the noise floor",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-04,2025-06-21T16:29:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-21T17:32:00Z,MACHINE,IMPELLER_WEAR,1.0,vibration accel rms is low (z = -19.1); flow is low (z = -11.5); motor speed is low (z = -9.4),Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-21T17:52:00Z,MACHINE,IMPELLER_WEAR,0.1462,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-22T12:05:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,vibration_rms_mm_s varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-22T13:09:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,vibration accel rms g deviates alone (z = -35.3); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-22T13:29:00Z,MACHINE,IMPELLER_WEAR,0.1444,Head is 2.9 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-19T00:39:00Z,MACHINE,IMPELLER_WEAR,0.1049,Head is 2.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-21T02:42:00Z,MACHINE,IMPELLER_WEAR,0.1064,Head is 2.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-21T09:45:00Z,SENSOR,SENSOR_STUCK,0.6,discharge_pressure_kpa has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+PUMP-05,2026-01-21T23:50:00Z,MACHINE,IMPELLER_WEAR,0.1164,Head is 2.3 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-23T09:11:00Z,MACHINE,IMPELLER_WEAR,0.1098,Head is 2.2 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-23T23:51:00Z,MACHINE,IMPELLER_WEAR,0.1344,Head is 2.7 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-24T13:44:00Z,MACHINE,IMPELLER_WEAR,0.1057,Head is 2.1 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-05,2026-01-25T08:12:00Z,MACHINE,IMPELLER_WEAR,0.1091,Head is 2.2 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-06,2025-10-09T11:58:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure is low (z = -9.6),Inspect and clean the suction strainer.
+PUMP-06,2025-10-10T01:35:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,suction pressure kpa deviates alone (z = -8.4); related channels are normal,Inspect and clean the suction strainer.
+PUMP-06,2025-10-10T07:07:00Z,MACHINE,BEARING_WEAR,1.0,"vibration accel rms is high (z = +49.4); suction pressure is low (z = -16.1); discharge pressure is low (z = -12.5); Vibration snapshot at 2025-10-10 04:10 shows no clear change (this argues against bearing wear): RMS 1.06 x start value, crest factor +0.18, kurtosis +0.02; Envelope spectrum at 2025-10-10 04:10: peak at BPFI (inner race) is 3 x the noise floor (no bearing defect peak; this argues against bearing wear)",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-06,2025-10-10T07:27:00Z,MACHINE,IMPELLER_WEAR,0.9,Head is 20.4 % of rated head below the pump curve,Do a performance test. Examine the impeller and the wear rings.
+PUMP-07,2025-05-15T03:58:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,flow m3 h deviates alone (z = -20.9); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-07,2025-05-15T19:07:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.9981,flow m3 h deviates alone (z = -12.0); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-07,2025-05-16T23:57:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,flow m3 h deviates alone (z = +17.7); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-07,2025-05-17T10:53:00Z,MACHINE,IMPELLER_WEAR,0.121,Head is 2.4 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-17T16:17:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.9472,flow m3 h deviates alone (z = +11.4); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-07,2025-05-18T08:23:00Z,MACHINE,BEARING_WEAR,1.0,"vibration crest factor is high (z = +9.3); Vibration snapshot at 2025-05-18 05:21 shows no clear change (this argues against bearing wear): RMS 1.00 x start value, crest factor +0.49, kurtosis +0.05; Envelope spectrum at 2025-05-18 05:21: peak at BPFI (inner race) is 2 x the noise floor (no bearing defect peak; this argues against bearing wear)",Inspect the bearing and the lubrication. Plan a bearing replacement.
+PUMP-08,2025-09-11T13:33:00Z,MACHINE,UNKNOWN,0.0,suction pressure is high (z = +8.3),Inspect the pump. Examine the channels in the evidence.
+PUMP-08,2025-09-13T00:22:00Z,SENSOR,COMMUNICATION_LOSS,0.6,Rows are missing,Examine the gateway and the network.
+PUMP-08,2025-09-13T05:17:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,suction_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-08,2025-09-13T12:35:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-08,2025-09-13T17:23:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,suction_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-08,2025-09-14T04:04:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-10T07:28:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,vibration rms mm s deviates alone (z = +17.2); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-10T19:55:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.8728,vibration rms mm s deviates alone (z = +10.5); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-11T08:59:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.7041,vibration rms mm s deviates alone (z = +8.4); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-12T00:35:00Z,SENSOR,SENSOR_STUCK,0.6,bearing_temp_c has the same value while the pump runs,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-13T07:30:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,1.0,vibration rms mm s deviates alone (z = -20.0); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-13T23:32:00Z,SENSOR,SENSOR_CALIBRATION_SHIFT,0.8442,vibration rms mm s deviates alone (z = -10.1); related channels are normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-09,2026-02-15T01:53:00Z,MACHINE,SUCTION_STRAINER_CLOGGING,1.0,flow is low (z = -8.3),Inspect and clean the suction strainer.
+PUMP-09,2026-02-15T08:02:00Z,MACHINE,IMPELLER_WEAR,0.2503,Head is 5.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.

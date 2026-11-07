@@ -1,0 +1,9 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-02,2025-12-03T02:36:00Z,SENSOR,SENSOR_NOISE_SPIKES,0.6,discharge_pressure_kpa varies much more than normal,Examine the transmitter. Compare it with a reference gauge.
+PUMP-04,2025-06-18T07:53:00Z,MACHINE,IMPELLER_WEAR,0.1007,Head is 2.0 % of rated head below the pump curve,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-20T23:31:00Z,MACHINE,IMPELLER_WEAR,1.0,motor speed is low (z = -10.5); motor power is low (z = -8.9),Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-21T17:32:00Z,MACHINE,IMPELLER_WEAR,1.0,motor speed is low (z = -13.9); motor power is low (z = -13.1); motor current is low (z = -9.3),Do a performance test. Examine the impeller and the wear rings.
+PUMP-04,2025-06-22T13:09:00Z,MACHINE,IMPELLER_WEAR,1.0,motor speed is low (z = -9.6); motor power is low (z = -9.4),Do a performance test. Examine the impeller and the wear rings.
+PUMP-09,2026-02-14T04:35:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +8.3),Do a performance test. Examine the impeller and the wear rings.
+PUMP-09,2026-02-14T18:16:00Z,MACHINE,IMPELLER_WEAR,1.0,discharge pressure is high (z = +8.1),Do a performance test. Examine the impeller and the wear rings.
+PUMP-09,2026-02-15T07:59:00Z,MACHINE,IMPELLER_WEAR,1.0,motor current is low (z = -8.6),Do a performance test. Examine the impeller and the wear rings.

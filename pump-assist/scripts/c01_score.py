@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""C01: score each tested option on train and validation and compare with baselines B0-B3.
+
+Writes results/results.csv (one row per option and split) and results/results.md. Test pumps are never read.
+"""
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT.parent / "baseline-reproduction" / "scripts"))
+
+import pandas as pd
+from assist import _ref  # noqa: F401
+import eval as ev
+
+OPTIONS = {"D01_zscore": "results/d01_trainval_predictions.csv",
+           "D01+E01+R01": "results/e01_trainval_predictions.csv",
+           "+D04": "results/d04_plus_e01_trainval_predictions.csv",
+           "+D04+Q01": "results/q01_trainval_predictions.csv",
+           "+D04+Q01+D06": "results/d06_trainval_predictions.csv",
+           "+D04+Q01+D06+E02": "results/e02_trainval_predictions.csv",
+           "+E02 rule gate": "results/e02_gate_trainval_predictions.csv",
+           "D03 PCA only (full system otherwise)": "results/d03_only_trainval_predictions.csv",
+           "D01 + D03 (option, off in frozen system)": "results/d03_union_trainval_predictions.csv",
+           "+ V03 bearing alerts (option, off in frozen system)": "results/v03_trainval_predictions.csv",
+           "+ V02 spectral typing (option, off in frozen system)": "results/v02_trainval_predictions.csv",
+           "E04 decision tree instead of E02 (comparison, not adopted)": "results/e04_trainval_predictions.csv",
+           "D05 operating-mode clusters: K-means (comparison, not adopted)": "results/d05_kmeans_trainval_predictions.csv",
+           "D05 operating-mode clusters: GMM (comparison, not adopted)": "results/d05_gmm_trainval_predictions.csv",
+           "D07 autoencoder only (comparison, not kept)": "results/d07_ae_only_trainval_predictions.csv",
+           "+ E03 sensor/machine rules + drift-vs-shift typing (frozen system)": "results/e03_trainval_predictions.csv",
+           "+ T02 after-maintenance alerts (frozen system)": "results/t02_trainval_predictions.csv",
+           "T01 baseline: static (frozen)": "results/t01_static_trainval_predictions.csv",
+           "T01 baseline: always learning": "results/t01_always_trainval_predictions.csv",
+           "T01 baseline: guarded": "results/t01_guarded_trainval_predictions.csv"}
+KEYS = ["composite_score", "event_f1", "event_recall", "alert_precision", "false_alerts_per_asset_day",
+        "timeliness", "fault_type_recall", "class_recall"]
+
+
+def main():
+    rows = []
+    for name, path in OPTIONS.items():
+        pred = pd.read_csv(ROOT / path)
+        s = ev.score_splits(pred)
+        for sp in ("train", "validation"):
+            rows.append({"option": name, "split": sp, **{k: s[sp][k] for k in KEYS}})
+    base = pd.read_csv(ROOT.parent / "original-challenge/baselines/results/baseline_metrics.csv")
+    for _, r in base.iterrows():
+        rows.append({"option": r["baseline"], "split": r["split"], **{k: r[k] for k in KEYS}})
+    t03 = ROOT / "results" / "t03_stress.csv"          # T03: generated stress fleets, mean of seeds 101-103 (frozen system and B1)
+    if t03.exists():
+        for _, r in pd.read_csv(t03).query("seed == 'mean'").iterrows():
+            rows.append({"option": "stress mean (T03): " + r["system"], "split": "stress", **{k: r[k] for k in KEYS}})
+    df = pd.DataFrame(rows)
+    df.to_csv(ROOT / "results" / "results.csv", index=False)
+    show = df.copy()
+    show[KEYS] = show[KEYS].round(3)
+    md = ["| option | split | composite | F1 | recall | precision | FA+ex/day | timeliness | type recall | class recall |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
+    for _, r in show.iterrows():
+        md.append("| " + " | ".join([r.option, r.split] + [str(r[k]) for k in KEYS]) + " |")
+    (ROOT / "results" / "results.md").write_text("\n".join(md) + "\n")
+    print("\n".join(md))
+
+
+if __name__ == "__main__":
+    main()

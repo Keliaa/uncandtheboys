@@ -1,0 +1,33 @@
+asset_id,alert_time_utc,event_class,fault_type,confidence,evidence,recommended_action
+PUMP-01,2025-08-13T02:19:00Z,MACHINE,UNKNOWN,0.4587,suction_pressure_kpa z=-9.2,Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-16T18:06:00Z,MACHINE,UNKNOWN,0.4132,suction_pressure_kpa z=-8.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-17T06:42:00Z,MACHINE,UNKNOWN,0.4838,suction_pressure_kpa z=-9.7,Inspect the pump. Examine the channels in the evidence.
+PUMP-01,2025-08-17T20:43:00Z,MACHINE,UNKNOWN,0.4202,suction_pressure_kpa z=-8.4,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-02T20:02:00Z,MACHINE,UNKNOWN,0.4357,suction_pressure_kpa z=+8.7,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-03T22:01:00Z,MACHINE,UNKNOWN,0.99,motor_winding_temp_c z=-21.7; suction_pressure_kpa z=+19.0; vibration_accel_rms_g z=+14.8,Inspect the pump. Examine the channels in the evidence.
+PUMP-02,2025-12-06T22:27:00Z,MACHINE,UNKNOWN,0.99,motor_winding_temp_c z=-21.8; bearing_temp_c z=-11.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-04T00:03:00Z,MACHINE,UNKNOWN,0.5021,discharge_pressure_kpa z=+10.0; motor_current_a z=-9.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-06T08:52:00Z,MACHINE,UNKNOWN,0.4042,discharge_pressure_kpa z=+8.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-06T20:58:00Z,MACHINE,UNKNOWN,0.407,discharge_pressure_kpa z=+8.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-07T10:21:00Z,MACHINE,UNKNOWN,0.411,discharge_pressure_kpa z=+8.2,Inspect the pump. Examine the channels in the evidence.
+PUMP-03,2026-03-07T23:18:00Z,MACHINE,UNKNOWN,0.4125,discharge_pressure_kpa z=+8.2,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-17T02:47:00Z,MACHINE,UNKNOWN,0.414,flow_m3_h z=-8.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-17T19:08:00Z,MACHINE,UNKNOWN,0.4375,vibration_rms_mm_s z=+8.8,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-18T22:01:00Z,MACHINE,UNKNOWN,0.9635,vibration_rms_mm_s z=+19.3; vibration_accel_rms_g z=+17.2; motor_winding_temp_c z=-8.4,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-19T16:34:00Z,MACHINE,UNKNOWN,0.99,vibration_rms_mm_s z=+38.0; vibration_accel_rms_g z=+31.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-20T15:14:00Z,MACHINE,UNKNOWN,0.99,vibration_rms_mm_s z=+63.8; vibration_accel_rms_g z=+50.7; motor_winding_temp_c z=-8.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-21T16:29:00Z,MACHINE,UNKNOWN,0.99,vibration_rms_mm_s z=+47.0; flow_m3_h z=-17.3; motor_speed_rpm z=-14.0,Inspect the pump. Examine the channels in the evidence.
+PUMP-04,2025-06-22T12:05:00Z,MACHINE,UNKNOWN,0.99,vibration_rms_mm_s z=+58.1; flow_m3_h z=-11.3; motor_speed_rpm z=-9.9,Inspect the pump. Examine the channels in the evidence.
+PUMP-06,2025-10-09T08:05:00Z,MACHINE,UNKNOWN,0.4043,suction_pressure_kpa z=-8.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-06,2025-10-09T20:29:00Z,MACHINE,UNKNOWN,0.4155,suction_pressure_kpa z=-8.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-06,2025-10-10T09:10:00Z,MACHINE,UNKNOWN,0.99,suction_pressure_kpa z=-21.0; discharge_pressure_kpa z=-16.8,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-14T15:20:00Z,MACHINE,UNKNOWN,0.7065,motor_winding_temp_c z=-14.1; bearing_temp_c z=-9.3,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-15T18:02:00Z,MACHINE,UNKNOWN,0.99,flow_m3_h z=-22.0; motor_winding_temp_c z=-11.9; bearing_temp_c z=-8.8,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-16T22:53:00Z,MACHINE,UNKNOWN,0.99,flow_m3_h z=-21.9; motor_winding_temp_c z=-14.1; bearing_temp_c z=-9.1,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-17T15:12:00Z,MACHINE,UNKNOWN,0.7153,motor_winding_temp_c z=-14.3; bearing_temp_c z=-8.9,Inspect the pump. Examine the channels in the evidence.
+PUMP-07,2025-05-18T04:06:00Z,MACHINE,UNKNOWN,0.7377,motor_winding_temp_c z=-14.8; bearing_temp_c z=-10.4,Inspect the pump. Examine the channels in the evidence.
+PUMP-08,2025-09-10T18:17:00Z,MACHINE,UNKNOWN,0.4213,suction_pressure_kpa z=-8.4,Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-10T06:23:00Z,MACHINE,UNKNOWN,0.9723,vibration_rms_mm_s z=+19.4; motor_winding_temp_c z=-14.8,Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-12T00:15:00Z,MACHINE,UNKNOWN,0.99,vibration_rms_mm_s z=+22.9; motor_winding_temp_c z=-13.2,Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-13T06:02:00Z,MACHINE,UNKNOWN,0.7694,motor_winding_temp_c z=-15.4,Inspect the pump. Examine the channels in the evidence.
+PUMP-09,2026-02-14T01:16:00Z,MACHINE,UNKNOWN,0.5761,flow_m3_h z=-11.5,Inspect the pump. Examine the channels in the evidence.

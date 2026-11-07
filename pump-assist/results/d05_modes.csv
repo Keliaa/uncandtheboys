@@ -1,0 +1,4 @@
+regime,train,validation,train_recall,val_recall,FA_day_train,FA_day_val,normal_variation_all,normal_variation_fixed_speed
+speed,64.1,85.5,0.81,1.0,0.33,0.14,8.76,2.65
+kmeans,61.0,73.7,0.81,1.0,0.47,0.36,9.2,3.49
+gmm,63.5,76.1,0.85,1.0,0.45,0.29,10.19,3.01

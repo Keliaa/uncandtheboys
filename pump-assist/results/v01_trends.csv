@@ -1,0 +1,8 @@
+asset_id,bearing_wear_event,snapshots,max_rms_ratio,max_kurt_delta,max_crest_delta,snapshots_flagged
+PUMP-01,,41,1.14,0.08,0.6,0
+PUMP-02,minor,39,7.46,46.57,8.05,26
+PUMP-04,moderate,39,9.08,31.27,6.27,26
+PUMP-06,,42,6.0,2.85,2.63,1
+PUMP-07,minor,37,1.05,0.13,0.49,0
+PUMP-08,minor,34,2.54,28.8,8.53,10
+PUMP-09,,42,1.1,0.08,0.94,0

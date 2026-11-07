@@ -1,0 +1,54 @@
+# pump-assist-v2 switchboard. Every method of the pipeline is set here; function arguments and the PUMP_ASSIST_ENGINE
+# environment variable override this file (argument > environment > file > built-in default).
+
+# Which detector runs:
+#   v2 : this folder's methods (below). No simulator constants are used.
+#   b4 : the B4 detector in ../physics-context-detector, imported unchanged (read only). It reproduces B4's scores
+#        (train 92.3, validation 95.7). B4 uses the simulator's pump curve, control laws and profile constants.
+engine: v2
+
+b4:
+  params_file: null     # JSON file with overrides of B4's PARAMS, e.g. ../physics-context-detector/results/b4_frozen_params.json
+  params: {}            # overrides inside B4's PARAMS, e.g. {stable_min: 20, k_fast: 6.0}. Chosen on train pumps only.
+
+# Stages after the detector. They run for BOTH engines, on the same alert records. A value may be one setting for both engines
+# or {v2: ..., b4: ...}.
+shared:
+  vibration_evidence: {v2: true, b4: false}   # V01-V03 evidence text (snapshot change, envelope peak, order lines); B4 has its own
+  episodes_quiet_min: {v2: 1440, b4: 0}       # one alert per developing problem; 0 = off (B4 has its own episode logic)
+  what_if: false                              # R02 sandbox (uses simulator profile defaults)
+  quality_report: true                        # trust per channel for the report's sensor-health panel
+
+v2:
+  detect:
+    k: 8.0                  # D01 robust z-score alert limit (chosen on train pumps)
+    persist: 10             # minutes the deviation must hold
+    trust_gate: true        # Q01: ignore channels with trust < 0.5
+    regime: speed           # speed | kmeans | gmm  (D05; clusters scored lower)
+    baseline: static        # static | always | guarded  (T01)
+    benign:                 # D06: hold alerts in start-up, load change, heavy weather
+      enabled: true
+      tail_min: 60
+      hs_limit: 2.2
+  physics:                  # D04: pump-curve head check (nameplate from assets.csv)
+    enabled: true
+    limit_pct: 2.0
+    persist: 30
+  quality:                  # Q01: sensor alerts
+    gap_persist: 30
+    flat_min: 30
+  maintenance:              # T02: step after a maintenance stop
+    enabled: true
+    step_z: 8.0
+  evidence:
+    e02: true               # naive Bayes fault type (model in results/e02_model.json)
+    gate: true              # fault type must match one of its own symptoms
+    sensor_alone: null      # related-channel quiet limit as a fraction of k (null = 1/3)
+    shape_typing: true      # E03: slow sensor drift vs calibration shift
+    derived_sensor: true    # head residual explained by one pressure transmitter -> SENSOR alert
+    stable_min: 1           # first alert waits for a stable type this many minutes (tried: lower scores)
+  options:                  # tried and not adopted; all off
+    d02_limit: null         # D02 regression + EWMA flag limit
+    ewma: null              # [span, limit] segment-reset smoothing
+    v03_alerts: false       # bearing envelope alerts
+    v02_typing: false       # spectral typing

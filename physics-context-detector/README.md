@@ -1,5 +1,9 @@
 # Physics/context detector (B4)
 
+An isolated, opt-in [learned diagnosis experiment](LEARNED_DIAGNOSIS.md) trains on
+simulated stress fleets and relabels B4 alerts without changing detection. Its
+runner and outputs are separate from the frozen results below.
+
 Causal physics/context detector developed from commits `e39105d` through `aab874a`. Its incremental variants and rejected trials are recorded in [EXPERIMENTS.md](EXPERIMENTS.md); they are development stages of this detector. [RESULTS.md](RESULTS.md) contains scores and analysis. The implementation is `b4.py`; the unchanged simulator/scorer is imported from `../original-challenge/src`.
 
 From the repository root:

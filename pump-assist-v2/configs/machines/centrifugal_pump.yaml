@@ -1,0 +1,127 @@
+# Machine configuration (S02): all knowledge about one machine type lives here.
+# Code reads this file; it never hard-codes pump knowledge.
+machine_type: centrifugal_pump
+version: 1
+
+# Telemetry channels. `group` is used to pick related channels; `direction` symptoms use these names.
+channels:
+  motor_speed_rpm:        {unit: rpm,    group: drive}
+  motor_current_a:        {unit: A,      group: drive}
+  motor_power_kw:         {unit: kW,     group: drive}
+  suction_pressure_kpa:   {unit: kPa(g), group: hydraulic}
+  discharge_pressure_kpa: {unit: kPa(g), group: hydraulic}
+  flow_m3_h:              {unit: m3/h,   group: hydraulic}
+  fluid_temp_c:           {unit: degC,   group: thermal}
+  bearing_temp_c:         {unit: degC,   group: thermal}
+  motor_winding_temp_c:   {unit: degC,   group: thermal}
+  vibration_rms_mm_s:     {unit: mm/s,   group: vibration}
+  vibration_accel_rms_g:  {unit: g,      group: vibration}
+  vibration_crest_factor: {unit: "-",    group: vibration}
+  ambient_temp_c:         {unit: degC,   group: context}
+  valve_position_pct:     {unit: "%",    group: hydraulic}
+
+# Channels that define the operating mode (what "normal" depends on). Used only if present.
+operating_mode_variables: [motor_speed_rpm, fluid_temp_c, ambient_temp_c, valve_position_pct]
+# Related channels: when one deviates alone, check these to tell a sensor fault from a machine fault.
+related_channels:
+  suction_pressure_kpa: [discharge_pressure_kpa, flow_m3_h, motor_speed_rpm]
+  discharge_pressure_kpa: [suction_pressure_kpa, flow_m3_h, motor_current_a]
+  motor_current_a: [motor_power_kw, motor_speed_rpm, flow_m3_h]
+  motor_power_kw: [motor_current_a, motor_speed_rpm]
+  bearing_temp_c: [vibration_rms_mm_s, vibration_accel_rms_g, fluid_temp_c]
+  vibration_rms_mm_s: [vibration_accel_rms_g, vibration_crest_factor]
+  vibration_accel_rms_g: [vibration_rms_mm_s, vibration_crest_factor]
+  flow_m3_h: [motor_speed_rpm, motor_power_kw, discharge_pressure_kpa]
+
+# Symptom table (worklist 6.1). direction: up / down / strong_down / change.
+# `needs`: list of alternatives (any one is enough); each alternative is a list of channels that must all exist.
+# `needs: []` means any pump. Symptoms on channels the pump lacks are ignored by the rule engine.
+symptoms:
+  BEARING_WEAR:
+    class: MACHINE
+    needs: [[vibration_accel_rms_g], [vibration_rms_mm_s]]
+    evidence:
+      - {channel: vibration_accel_rms_g,  direction: up}
+      - {channel: vibration_crest_factor, direction: up}
+      - {channel: vibration_rms_mm_s,     direction: up}
+      - {channel: bearing_temp_c,         direction: up}
+  SUCTION_STRAINER_CLOGGING:
+    class: MACHINE
+    needs: [[suction_pressure_kpa], [motor_speed_rpm]]
+    evidence:
+      - {channel: suction_pressure_kpa, direction: down}
+      - {channel: flow_m3_h,            direction: down}
+      - {channel: motor_speed_rpm,      direction: up}
+      - {channel: motor_power_kw,       direction: up}
+  CAVITATION:
+    class: MACHINE
+    needs: [[suction_pressure_kpa, vibration_accel_rms_g]]
+    evidence:
+      - {channel: suction_pressure_kpa,   direction: strong_down}
+      - {channel: discharge_pressure_kpa, direction: down}
+      - {channel: vibration_accel_rms_g,  direction: up}
+  DISCHARGE_RESTRICTION:
+    class: MACHINE
+    needs: []
+    evidence:
+      - {channel: discharge_pressure_kpa, direction: up}
+      - {channel: flow_m3_h,              direction: down}
+      - {channel: motor_current_a,        direction: down}
+  MISALIGNMENT:
+    class: MACHINE
+    needs: [[vibration_rms_mm_s]]
+    evidence:
+      - {channel: vibration_rms_mm_s, direction: up}
+      - {channel: bearing_temp_c,     direction: up}
+  IMBALANCE:
+    class: MACHINE
+    needs: [[vibration_rms_mm_s]]
+    evidence:
+      - {channel: vibration_rms_mm_s,    direction: up}
+      - {channel: vibration_accel_rms_g, direction: unchanged}
+  IMPELLER_WEAR:
+    class: MACHINE
+    needs: []
+    evidence:
+      - {channel: discharge_pressure_kpa, direction: down}
+      - {channel: motor_current_a,        direction: down}
+  AIR_ENTRAINMENT:
+    class: MACHINE
+    needs: []
+    evidence:
+      - {channel: discharge_pressure_kpa, direction: down}
+      - {channel: flow_m3_h,              direction: unstable}
+      - {channel: vibration_rms_mm_s,     direction: up}
+  SENSOR_DRIFT:             {class: SENSOR, needs: [], evidence: [{channel: any, direction: slow_change, related_unchanged: true}]}
+  SENSOR_CALIBRATION_SHIFT: {class: SENSOR, needs: [], evidence: [{channel: any, direction: step_change, related_unchanged: true}]}
+  SENSOR_STUCK:             {class: SENSOR, needs: [], evidence: [{channel: any, direction: std_zero_while_load_changes}]}
+  SENSOR_NOISE_SPIKES:      {class: SENSOR, needs: [], evidence: [{channel: any, direction: std_up_mean_same}]}
+  COMMUNICATION_LOSS:       {class: SENSOR, needs: [], evidence: [{channel: any, direction: rows_missing}]}
+
+# Action table (worklist 7.1). `SENSOR_*` is the default for every SENSOR_ fault type.
+# sandbox_action / sandbox_hypothesis feed the what-if tool (R02).
+actions:
+  BEARING_WEAR:              {text: "Inspect the bearing and the lubrication. Plan a bearing replacement.", sandbox_action: replace_bearing, sandbox_hypothesis: "bearing_wear=0.6"}
+  SUCTION_STRAINER_CLOGGING: {text: "Inspect and clean the suction strainer.", sandbox_action: clean_strainer, sandbox_hypothesis: "clog=2.0"}
+  CAVITATION:                {text: "Examine the suction strainer and the inlet level. Decrease the flow if operation permits.", sandbox_action: speed_setpoint, sandbox_hypothesis: "clog=3.0"}
+  DISCHARGE_RESTRICTION:     {text: "Examine the discharge valves and the heat exchanger.", sandbox_action: inspect, sandbox_hypothesis: "restriction=2.0"}
+  MISALIGNMENT:              {text: "Examine the coupling alignment.", sandbox_action: realign, sandbox_hypothesis: "misalignment=0.5"}
+  IMBALANCE:                 {text: "Examine the impeller for deposits or damage.", sandbox_action: inspect, sandbox_hypothesis: "unbalance=1.0"}
+  IMPELLER_WEAR:             {text: "Do a performance test. Examine the impeller and the wear rings.", sandbox_action: inspect, sandbox_hypothesis: "impeller_wear=0.08"}
+  AIR_ENTRAINMENT:           {text: "Examine the inlet level and the venting.", sandbox_action: inspect, sandbox_hypothesis: "air_entrainment=0.02"}
+  "SENSOR_*":                {text: "Examine the transmitter. Compare it with a reference gauge.", sandbox_action: none, sandbox_hypothesis: none}
+  COMMUNICATION_LOSS:        {text: "Examine the gateway and the network.", sandbox_action: none, sandbox_hypothesis: none}
+  UNKNOWN:                   {text: "Inspect the pump. Examine the channels in the evidence.", sandbox_action: none, sandbox_hypothesis: none}
+
+# Certainty labels (worklist section 6): High >= 0.70, Medium 0.40-0.70, Low < 0.40 -> UNKNOWN.
+certainty: {high: 0.70, medium: 0.40}
+
+# Optional physics part (D04). Curve: H = H_bep (h0 r^2 - (h0-1)(Q/Q_bep)^2), r = speed / rated speed,
+# h0 = shut-off head / BEP head. Affinity: pressure ~ speed^2, power ~ speed^3.
+# Parameters come from the asset nameplate (pump_rated_*, pump_shutoff_head_m, design_*, static_head_m).
+physics:
+  brackish_salinity_psu: 6.0          # used when the asset fluid text contains "brackish"
+  assumed_suction_kpa_by_profile:     # gauge suction pressure when no suction transmitter exists
+    SHIP_LT_FRESHWATER: 120.0         # pressurised closed loop (expansion tank)
+  ewma_span_min: 30
+  steady_min_minutes: 10

@@ -2,9 +2,10 @@
 """Development helper: run B4 on stress fleets and print the events that were missed or mistyped."""
 import os, sys, json
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src")); sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT); sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import pandas as pd
-from retrofit_sim import b4
+import b4
 import eval as ev
 P = json.load(open(sys.argv[2])) if len(sys.argv) > 2 else None
 rows = []

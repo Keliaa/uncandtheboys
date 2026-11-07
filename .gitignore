@@ -2,8 +2,8 @@
 __pycache__/
 *.pyc
 .DS_Store
-data/
-cache/
-my_results/
-results/cache/
-build/
+/data/*
+!/data/README.md
+**/cache/
+**/my_results/
+**/build/

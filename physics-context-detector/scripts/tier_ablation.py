@@ -10,10 +10,11 @@ instruments may not be able to reveal; the lower-tier numbers are therefore pess
 """
 import os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src")); sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT); sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import numpy as np
 import pandas as pd
-from retrofit_sim import b4
+import b4
 from retrofit_sim.scoring import score
 import eval as ev
 
@@ -52,7 +53,7 @@ def degrade(inp, tier):
 
 
 def main():
-    inp = b4.load_inputs(os.path.join(ROOT, "data", "full"), T2_PUMPS)
+    inp = b4.load_inputs(os.path.join(os.path.dirname(ROOT), "data", "full"), T2_PUMPS)
     assets, evs, bn = ev.load_labels()
     E = pd.concat([evs["train"], evs["validation"]])
     rows = []

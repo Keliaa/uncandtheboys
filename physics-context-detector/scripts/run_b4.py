@@ -15,12 +15,13 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 import pandas as pd  # noqa: E402
 
-from retrofit_sim import b4  # noqa: E402
+import b4  # noqa: E402
 
 DEV_IDS = [f"PUMP-0{i}" for i in range(1, 10)]
 TEST_IDS = ["PUMP-10", "PUMP-11", "PUMP-12"]
@@ -29,12 +30,17 @@ SUBMIT_COLS = ["asset_id", "alert_time_utc", "event_class", "fault_type", "confi
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default=os.path.join(ROOT, "data", "full"))
+    p.add_argument("--data", default=os.path.join(os.path.dirname(ROOT), "data", "full"))
     p.add_argument("--out", default=os.path.join(ROOT, "results"))
     p.add_argument("--final", action="store_true", help="also predict the test pumps with the frozen parameters")
     p.add_argument("--params", default=None, help="JSON file with parameter overrides")
     p.add_argument("--stress", default="", help="comma-separated stress seeds in build/stress_<seed> to score as extra dev data")
     a = p.parse_args(argv)
+    # Resolve symlinks as well: experiment outputs must stay inside this experiment.
+    out = os.path.realpath(a.out)
+    if os.path.commonpath([os.path.realpath(ROOT), out]) != os.path.realpath(ROOT):
+        p.error("--out must be inside physics-context-detector")
+    a.out = out
     os.makedirs(a.out, exist_ok=True)
     P = json.load(open(a.params)) if a.params else None
     t0 = time.time()

@@ -265,7 +265,7 @@ def steady_state(a: pd.Series, dem, tsup, zs, clog=0.05, R=1.0, iw=0.0):
     the uncertainty of the profile assumptions; the *differences* between perturbed and healthy states (fault
     signatures) are robust and are what the diagnosis uses.
     """
-    from . import physics as ph
+    from retrofit_sim import physics as ph
     pr = PROFILE.get(a.profile, GENERIC_PROFILE)
     dem = np.asarray(dem, dtype=float)
     tsup = np.asarray(tsup, dtype=float)

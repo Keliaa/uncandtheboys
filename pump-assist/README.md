@@ -34,6 +34,6 @@ streamlit run pump-assist/app/main.py
 | B1 baseline | 58.2 | 78.0 |
 | Frozen system (D01 + D04 + Q01 + D06 + E01/E02 with rule gate + R01 + T02) | 63.1 | 85.5 |
 
-Full table: `results/results.md`. Validation has 9 events on 2 pumps, so small differences are not meaningful. Known issues: E02
+Full table: `results/results.md`. Leave-one-site-out transfer test (T05): `results/t05_sites.md` (held-out mean 56.2 vs 67.3 when the site was seen, B1 55.1). Validation has 9 events on 2 pumps, so small differences are not meaningful. Known issues: E02
 probabilities are overconfident (0.98 stated vs 0.65 correct on 28 alerts); D04 raises many alerts on PUMP-12 because its
 nameplate sits about 7 % below the pump curve; D02 is implemented but off in the frozen system (train +2.8, validation neutral).

@@ -20,12 +20,12 @@ from .evidence.bayes import GaussianNB
 from .ingest.features import load_assets, load_features
 from .ingest.quality import sensor_alerts, trust_frame
 from .recommend.actions import add_actions
-from .splits import DATA_FULL, REPO_ROOT
+from .splits import DATA_FULL, EXP_ROOT
 
 PHYS_LIMIT, PHYS_PERSIST = 2.0, 30
 GAP_PERSIST = FLAT_MIN = 30
 BENIGN_TAIL, HS_LIMIT = 60, 2.2
-E02_MODEL = REPO_ROOT / "results" / "e02_model.json"
+E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,

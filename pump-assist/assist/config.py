@@ -13,9 +13,9 @@ from typing import Any
 
 import yaml
 
-from .splits import REPO_ROOT
+from .splits import EXP_ROOT
 
-CONFIG_DIR = REPO_ROOT / "configs"
+CONFIG_DIR = EXP_ROOT / "configs"
 DEFAULT_MACHINE = "centrifugal_pump"
 NUMERIC_ASSET_FIELDS = {
     "commissioned_year", "pump_rated_flow_m3_h", "pump_rated_head_m", "pump_shutoff_head_m",

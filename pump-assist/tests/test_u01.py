@@ -20,7 +20,7 @@ class DecisionTests(unittest.TestCase):
 
 class AppTests(unittest.TestCase):
     def test_pump08_shows_alert_and_records_decision(self):
-        if not (Path(__file__).resolve().parents[1] / "data/full/features_1min.parquet").exists():
+        if not (Path(__file__).resolve().parents[2] / "data/full/features_1min.parquet").exists():
             self.skipTest("data/full missing")
         from streamlit.testing.v1 import AppTest
         tmp = tempfile.TemporaryDirectory()

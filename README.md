@@ -4,6 +4,7 @@
 - [Shared data](data/README.md): existing `full/` and `starter/` datasets, read only for experiments.
 - [Baseline reproduction](baseline-reproduction/README.md): B1 evaluation and official B1–B3 reproduction outputs.
 - [Physics/context detector](physics-context-detector/README.md): B4 detector, development helpers, causality tests and frozen predictions.
+- [Pump assist](pump-assist/README.md): worklist implementation (ingest, detect, evidence, recommend, app, reports) and its results.
 - [Repository layout and provenance](docs/REPOSITORY_LAYOUT.md).
 
 Install dependencies with `python -m pip install -r original-challenge/requirements.txt` and `python -m pip install pytest` for tests. Commands below run from the repository root:

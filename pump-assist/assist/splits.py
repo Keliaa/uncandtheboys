@@ -9,7 +9,8 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+EXP_ROOT = Path(__file__).resolve().parents[1]      # pump-assist/: everything this experiment writes stays here
+REPO_ROOT = EXP_ROOT.parent                          # shared, read-only: data/, original-challenge/, baseline-reproduction/
 DATA_FULL = REPO_ROOT / "data" / "full"
 
 SPLITS = ("train", "validation", "test")

@@ -6,7 +6,7 @@ import itertools, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "baseline-reproduction" / "scripts"))
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT.parent / "baseline-reproduction" / "scripts"))
 
 import pandas as pd
 from assist import _ref  # noqa: F401
@@ -32,7 +32,7 @@ def machine_part(feats, assets, cfg, machine, zf, gate):
 
 def main():
     assets, machine = load_assets(), load_machine()
-    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT / "data" / "full" / "assets.csv")}
+    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT.parent / "data" / "full" / "assets.csv")}
     tr, va = pumps_in("train"), pumps_in("validation")
     data = {}
     for name, ids, sp in (("train", tr, "train"), ("validation", va, "validation")):

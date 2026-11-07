@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "baseline-reproduction" / "scripts"))
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT.parent / "baseline-reproduction" / "scripts"))
 
 import pandas as pd
 from assist import _ref  # noqa: F401
@@ -31,7 +31,7 @@ def main():
         s = ev.score_splits(pred)
         for sp in ("train", "validation"):
             rows.append({"option": name, "split": sp, **{k: s[sp][k] for k in KEYS}})
-    base = pd.read_csv(ROOT / "original-challenge/baselines/results/baseline_metrics.csv")
+    base = pd.read_csv(ROOT.parent / "original-challenge/baselines/results/baseline_metrics.csv")
     for _, r in base.iterrows():
         rows.append({"option": r["baseline"], "split": r["split"], **{k: r[k] for k in KEYS}})
     df = pd.DataFrame(rows)

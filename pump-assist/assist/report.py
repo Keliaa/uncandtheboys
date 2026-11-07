@@ -18,9 +18,9 @@ import pandas as pd  # noqa: E402
 
 from .alert import AlertRecord
 from .config import Asset
-from .splits import REPO_ROOT
+from .splits import EXP_ROOT
 
-REPORT_DIR = REPO_ROOT / "results" / "reports"
+REPORT_DIR = EXP_ROOT / "results" / "reports"
 CHART_CHANNELS = [("discharge_pressure_kpa", "Discharge pressure [kPa]"), ("suction_pressure_kpa", "Suction pressure [kPa]"),
                   ("motor_current_a", "Motor current [A]"), ("motor_speed_rpm", "Speed [rpm]"),
                   ("vibration_accel_rms_g", "Vibration acceleration [g]"), ("bearing_temp_c", "Bearing temperature [°C]")]

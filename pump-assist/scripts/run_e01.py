@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "baseline-reproduction" / "scripts"))
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT.parent / "baseline-reproduction" / "scripts"))
 
 import pandas as pd
 from assist import _ref  # noqa: F401
@@ -23,7 +23,7 @@ def predict(ids, split, assets, cfg, machine):
 
 def main():
     assets, machine = load_assets(), load_machine()
-    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT / "data" / "full" / "assets.csv")}
+    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT.parent / "data" / "full" / "assets.csv")}
     pred = pd.concat([predict(pumps_in("train"), "train", assets, cfg, machine),
                       predict(pumps_in("validation"), "validation", assets, cfg, machine)], ignore_index=True)
     pred.to_csv(ROOT / "results" / "e01_trainval_predictions.csv", index=False)

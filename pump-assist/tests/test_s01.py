@@ -23,7 +23,7 @@ class AlertTests(unittest.TestCase):
             rows = list(csv.DictReader(open(p, newline="")))
         self.assertEqual(list(rows[0]), SUBMISSION_COLUMNS)
         self.assertEqual(rows[0]["confidence"], "0.64")
-        template = Path(__file__).resolve().parents[1] / "original-challenge/submission_template/predictions_template.csv"
+        template = Path(__file__).resolve().parents[2] / "original-challenge/submission_template/predictions_template.csv"
         self.assertEqual(next(csv.reader(open(template))), SUBMISSION_COLUMNS)
 
     def test_validation(self):

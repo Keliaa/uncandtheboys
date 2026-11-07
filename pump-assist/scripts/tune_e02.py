@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "baseline-reproduction" / "scripts"))
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT.parent / "baseline-reproduction" / "scripts"))
 
 import numpy as np
 import pandas as pd
@@ -57,10 +57,10 @@ def training_rows(det_train: pd.DataFrame, events: pd.DataFrame):
 
 def main():
     assets, machine = load_assets(), load_machine()
-    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT / "data" / "full" / "assets.csv")}
+    cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(ROOT.parent / "data" / "full" / "assets.csv")}
     tr, va = pumps_in("train"), pumps_in("validation")
-    ev_tr = pd.read_csv(ROOT / "data" / "full" / "events_train.csv")
-    ev_va = pd.read_csv(ROOT / "data" / "full" / "events_validation.csv")
+    ev_tr = pd.read_csv(ROOT.parent / "data" / "full" / "events_train.csv")
+    ev_va = pd.read_csv(ROOT.parent / "data" / "full" / "events_validation.csv")
     data = {}
     for name, ids in (("train", tr), ("validation", va)):
         f = load_features(ids, splits=(name,))

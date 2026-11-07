@@ -15,6 +15,15 @@ python -m pytest -q tests/test_b4_causality.py
 python scripts/tier_ablation.py
 ```
 
+Windows PowerShell, from this experiment directory after the [repository Windows setup](../README.md#windows-powershell):
+
+```powershell
+..\.venv\Scripts\python.exe .\scripts\run_b4.py --final
+..\.venv\Scripts\python.exe .\scripts\eval.py .\results\b4_trainval_predictions.csv --compare-b1 --events-table --lopo
+..\.venv\Scripts\python.exe -m pytest -q .\tests\test_b4_causality.py
+..\.venv\Scripts\python.exe .\scripts\tier_ablation.py
+```
+
 The code and outputs are in these files:
 
 * Code: `b4.py` and `scripts/run_b4.py`.

@@ -1,0 +1,104 @@
+{
+ "generated_utc": "2026-11-07T12:13:43Z",
+ "b4_params": "b4_frozen_params.json",
+ "b4_module_sha256": "b86c37430033db94f5d8956c67ba23571f660fdd2aed3ad98d6f3794cb7b8fb1",
+ "frozen_inputs_sha256": {
+  "/Users/sami/Desktop/Claude Projects/uncandtheboys/physics-context-detector/results/b4_frozen_params.json": "e4e544df8c21e6d6a08bf2b94c8d4174dac7b91f633a77e301e1b8f1f9de0e31",
+  "/Users/sami/Desktop/Claude Projects/uncandtheboys/physics-context-detector/results/b4_trainval_predictions.csv": "fc29d7267326cfd3f42044c15d3684e3ecdfb21dc6de2b1f9ed26a6586ade157"
+ },
+ "note": "Presenter/validation report. Contains label information; the operator app never reads it.",
+ "scenes": [
+  {
+   "id": "normal_change",
+   "selection_rule": "earliest labelled LOAD_CHANGE window after the 24 h calibration, before the first B4 alert, monitoring active throughout, no B4 alert in the replay window",
+   "selected": {
+    "label_start_utc": "2025-09-09T04:24:05Z",
+    "label_end_utc": "2025-09-09T05:05:05Z",
+    "note": "arrival manoeuvring"
+   },
+   "candidates": [
+    {
+     "start_utc": "2025-09-08T02:30:28Z",
+     "end_utc": "2025-09-08T03:11:28Z",
+     "note": "arrival manoeuvring",
+     "qualifies": false,
+     "reasons": [
+      "inside the initial 24-hour calibration period",
+      "monitoring not available throughout (calibrating)"
+     ]
+    },
+    {
+     "start_utc": "2025-09-08T04:30:58Z",
+     "end_utc": "2025-09-08T05:11:58Z",
+     "note": "departure manoeuvring",
+     "qualifies": false,
+     "reasons": [
+      "inside the initial 24-hour calibration period",
+      "monitoring not available throughout (calibrating)"
+     ]
+    },
+    {
+     "start_utc": "2025-09-08T15:06:13Z",
+     "end_utc": "2025-09-08T15:47:13Z",
+     "note": "arrival manoeuvring",
+     "qualifies": false,
+     "reasons": [
+      "inside the initial 24-hour calibration period",
+      "monitoring not available throughout (calibrating)"
+     ]
+    },
+    {
+     "start_utc": "2025-09-08T17:20:28Z",
+     "end_utc": "2025-09-08T18:01:28Z",
+     "note": "departure manoeuvring",
+     "qualifies": false,
+     "reasons": [
+      "inside the initial 24-hour calibration period",
+      "monitoring not available throughout (calibrating)"
+     ]
+    },
+    {
+     "start_utc": "2025-09-09T04:24:05Z",
+     "end_utc": "2025-09-09T05:05:05Z",
+     "note": "arrival manoeuvring",
+     "qualifies": true,
+     "reasons": []
+    }
+   ],
+   "start_utc": "2025-09-09T04:04:00Z",
+   "end_utc": "2025-09-09T05:26:00Z",
+   "alerts_in_bundle": 0,
+   "minutes_in_bundle": 1522
+  },
+  {
+   "id": "worth_checking",
+   "alert_time_utc": "2025-09-10T08:23:00Z",
+   "fault_type": "SUCTION_STRAINER_CLOGGING",
+   "label_event_ids": [
+    "PUMP-08-E01"
+   ],
+   "label_onset_utc": [
+    "2025-09-09T14:21:21Z"
+   ],
+   "start_utc": "2025-09-10T07:38:00Z",
+   "end_utc": "2025-09-10T08:43:00Z",
+   "alerts_in_bundle": 1,
+   "minutes_in_bundle": 1505
+  },
+  {
+   "id": "verify_reading",
+   "alert_time_utc": "2026-02-11T00:09:00Z",
+   "fault_type": "SENSOR_DRIFT",
+   "label_event_ids": [
+    "PUMP-09-E04"
+   ],
+   "label_onset_utc": [
+    "2026-02-09T06:01:58Z"
+   ],
+   "start_utc": "2026-02-10T23:24:00Z",
+   "end_utc": "2026-02-11T00:29:00Z",
+   "alerts_in_bundle": 2,
+   "minutes_in_bundle": 1505
+  }
+ ]
+}

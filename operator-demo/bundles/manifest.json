@@ -1,0 +1,25 @@
+{
+ "format": "operator-demo-replay/1",
+ "label": "Recorded replay \u00b7 synthetic pump data",
+ "generated_utc": "2026-11-07T12:13:43Z",
+ "scenes": [
+  {
+   "chapter": 1,
+   "id": "normal_change",
+   "file": "scene_1_normal_change.json",
+   "sha256": "2266d658c837c3a646d13d860e288e180805b4a8fd2b0be5991aebd8d08b0077"
+  },
+  {
+   "chapter": 2,
+   "id": "worth_checking",
+   "file": "scene_2_worth_checking.json",
+   "sha256": "da9f26eb0eb15669200d9eb30c2a7e5dde7e12ee82e166333813e17d6a77a6d6"
+  },
+  {
+   "chapter": 3,
+   "id": "verify_reading",
+   "file": "scene_3_verify_reading.json",
+   "sha256": "d091f94376ba8184685b1f2a786f65bcf344078e69dc3a0216ba39c1a09ca6db"
+  }
+ ]
+}

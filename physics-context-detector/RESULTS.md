@@ -1,22 +1,23 @@
 # B4 results: physics- and context-aware causal detector
 
 B4 beats baseline B1 on every composite component, on train, on validation, and on 32 unseen simulated pumps.
-All numbers come from the official scorer (`src/retrofit_sim/scoring.py`). The B4 parameters were tuned on train.
+All numbers come from the official scorer (`../original-challenge/src/retrofit_sim/scoring.py`). The B4 parameters were tuned on train.
 Validation and the stress pumps were used only as checks.
 
-## Reproduce (one command, ~20 s on a laptop)
+## Reproduce (from this experiment directory)
 
 ```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python scripts/run_b4.py --final        # train+val predictions, scores vs B1, frozen test predictions
-.venv/bin/python scripts/eval.py results/b4_trainval_predictions.csv --compare-b1 --events-table --lopo
-.venv/bin/python -m pytest -q tests/test_b4_causality.py
-.venv/bin/python scripts/tier_ablation.py
+python -m pip install -r ../original-challenge/requirements.txt
+# Activate the repository virtualenv first, then cd physics-context-detector
+python scripts/run_b4.py --final        # train+val predictions, scores vs B1, frozen test predictions
+python scripts/eval.py results/b4_trainval_predictions.csv --compare-b1 --events-table --lopo
+python -m pytest -q tests/test_b4_causality.py
+python scripts/tier_ablation.py
 ```
 
 The code and outputs are in these files:
 
-* Code: `src/retrofit_sim/b4.py` and `scripts/run_b4.py`.
+* Code: `b4.py` and `scripts/run_b4.py`.
 * Harness: `scripts/eval.py`.
 * Causality test: `tests/test_b4_causality.py`.
 * Submission files:
@@ -42,7 +43,7 @@ The mean composite over train and validation is 68.1 for B1 and **94.0** for B4.
 B4 was also checked in three more ways:
 
 * **Stress pumps.** These are 4 stress fleets (32 random pumps with unseen ratings, seasons and missing sensors, 94 labelled
-  events), generated with `make_dataset.py --tier stress --seed 101..104 --stress-assets 8 --days 7` and scored with
+  events), generated with `../original-challenge/make_dataset.py --tier stress --seed 101..104 --stress-assets 8 --days 7` and scored with
   the full private labels.
 
   | method | stress composite | fault-type recall | recall |
@@ -128,21 +129,21 @@ Every step is causal: an alert at time t uses only rows stamped <= t, plus `asse
    * Temperature channels use lagged load, ambient and supply temperature.
 
    The regression is fitted on the pump's own steady minutes, expanding during the first 24 h and then frozen. Early
-   fits are deliberately made more uncertain (wider residual scale), and thermal channels are gated for 1.5–2.5 h
+   fits are deliberately made more uncertain (wider residual scale), and thermal channels are gated for 1.5â€“2.5 h
    after each start.
 3. **Diagnosis from fault signatures.** A steady-state physics model computes, at the current operating point, how
    each channel would move under a clog, a restriction or impeller wear (small and large magnitudes, because valves and
    drives saturate). The observed residual vector is classified by its best-fitting signature, or as one instrument
-   alone. A single-instrument hypothesis must beat the best machine fault by a chi² margin. It also accounts for derived
+   alone. A single-instrument hypothesis must beat the best machine fault by a chiÂ² margin. It also accounts for derived
    channels: a drifting suction transmitter also moves the computed head.
 4. **Pre-existing faults.** The pump is compared against absolute physics with fleet-level uncertainty: about 1.2 % for
    current on fixed-speed pumps, wider for VFD pumps. This catches the impeller wear present from the first hour on
    PUMP-03 and PUMP-05.
 5. **Vibration.** The bearing track uses acceleration and crest factor, with a fleet crest prior. The vibration
    snapshots add three spectral checks:
-   * BPFO envelope peak at least 4.5× the noise floor: bearing defect. Healthy snapshots stay below 3.8 (524 checked).
-   * 2× line at least 0.55 mm/s and at least 0.9× the 1× line: misalignment.
-   * Dominant 1× line: imbalance.
+   * BPFO envelope peak at least 4.5Ã— the noise floor: bearing defect. Healthy snapshots stay below 3.8 (524 checked).
+   * 2Ã— line at least 0.55 mm/s and at least 0.9Ã— the 1Ã— line: misalignment.
+   * Dominant 1Ã— line: imbalance.
 6. **Alert management.** One alert is raised per developing problem, per detector:
    * The first alert waits until the diagnosed type has been stable for 20 min.
    * Once an episode has alerted, only cavitation or air can raise a new alert in it.
@@ -159,23 +160,23 @@ transmitter before acting on the machine".
 
 These are the gains in mean composite (train+validation) recorded in `EXPERIMENTS.md`:
 
-| change | from → to |
+| change | from â†’ to |
 |---|---|
-| Stable-type diagnosis and family detectors | 68.1 → 69.4 (fault-type recall 0.27 → 0.58) |
-| Segment-reset smoothing, so no stale scores after repairs | → 79.8 |
-| Alert management (count quiet only while running; escalation-only) | → 86.7 |
-| Absolute physics for pre-existing faults | → 88.4 |
-| Derived-channel aware sensor test | → 90.1 |
-| Snapshot spectra | → 91.4 |
-| Drift timing over running minutes, large-fault signatures | → 92.1 |
-| Re-alert memory and stability window N = 20 | → 94.0 |
+| Stable-type diagnosis and family detectors | 68.1 â†’ 69.4 (fault-type recall 0.27 â†’ 0.58) |
+| Segment-reset smoothing, so no stale scores after repairs | â†’ 79.8 |
+| Alert management (count quiet only while running; escalation-only) | â†’ 86.7 |
+| Absolute physics for pre-existing faults | â†’ 88.4 |
+| Derived-channel aware sensor test | â†’ 90.1 |
+| Snapshot spectra | â†’ 91.4 |
+| Drift timing over running minutes, large-fault signatures | â†’ 92.1 |
+| Re-alert memory and stability window N = 20 | â†’ 94.0 |
 
 ## What did not work (reverted)
 
 * **Closing machine episodes at every lockout restart** (mean 89.8 vs 91.4). Routine lockouts re-trigger alerts for
   faults that are still present.
 * **Keeping an alerted hydraulic episode alive with continuation votes** (89.6). It suppressed genuine new detections.
-* **A lower sensor chi² margin.** It helps stress slightly but hurts train. 4 was kept.
+* **A lower sensor chiÂ² margin.** It helps stress slightly but hurts train. 4 was kept.
 
 ## Honest limitations
 
@@ -193,9 +194,9 @@ These are the gains in mean composite (train+validation) recorded in `EXPERIMENT
   false alerts). Drifts there would be missed.
 * **Confidence is not calibrated.** The `confidence` column is a fixed per-detector value, raised when snapshot
   evidence agrees. Backlog item 10 (isotonic calibration) was not done.
-* **Environment.** The work ran on Python 3.9 (macOS system Python). The package metadata asks for ≥ 3.10, so it was
+* **Environment.** The work ran on Python 3.9 (macOS system Python). The package metadata asks for â‰¥ 3.10, so it was
   run with `PYTHONPATH=src` instead of `pip install -e .`. The code itself uses `from __future__ import annotations`
-  and runs on 3.9–3.13.
+  and runs on 3.9â€“3.13.
 
 ## Three most promising next steps
 

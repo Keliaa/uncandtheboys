@@ -6,9 +6,10 @@
 import json, os, sys
 from concurrent.futures import ProcessPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src")); sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT); sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import pandas as pd
-from retrofit_sim import b4
+import b4
 import eval as ev
 
 SEEDS = os.environ.get("STRESS", "101,102,103,104").split(",")
@@ -16,7 +17,7 @@ SEEDS = os.environ.get("STRESS", "101,102,103,104").split(",")
 
 def run(over):
     P = dict(over)
-    pred = b4.run_b4(b4.load_inputs(os.path.join(ROOT, "data", "full"), [f"PUMP-0{i}" for i in range(1, 10)]), P)
+    pred = b4.run_b4(b4.load_inputs(os.path.join(os.path.dirname(ROOT), "data", "full"), [f"PUMP-0{i}" for i in range(1, 10)]), P)
     r = ev.score_splits(pred)
     st = []
     for sd in SEEDS:

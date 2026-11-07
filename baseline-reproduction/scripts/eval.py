@@ -16,13 +16,14 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT)
 
 import pandas as pd  # noqa: E402
 
 from retrofit_sim.scoring import score  # noqa: E402
 
-DATA = os.path.join(ROOT, "data", "full")
+DATA = os.path.join(os.path.dirname(ROOT), "data", "full")
 TEST_IDS = {"PUMP-10", "PUMP-11", "PUMP-12"}
 KEYS = [("composite", "composite_score", 1), ("F1", "event_f1", 3), ("recall", "event_recall", 3),
         ("precision", "alert_precision", 3), ("timeliness", "timeliness", 3), ("type_rec", "fault_type_recall", 3),

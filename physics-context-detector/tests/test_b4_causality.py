@@ -17,11 +17,12 @@ import pandas as pd
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT)
 
-from retrofit_sim import b4  # noqa: E402
+import b4  # noqa: E402
 
-DATA = os.path.join(ROOT, "data", "full")
+DATA = os.path.join(os.path.dirname(ROOT), "data", "full")
 # development pumps only: a VFD pressure-controlled fully instrumented pump with snapshots, a wireless-retrofit
 # process pump with cavitation episodes, and a legacy fixed-speed pump (test pumps are never used here)
 PUMPS = ["PUMP-04", "PUMP-06", "PUMP-03"]

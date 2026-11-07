@@ -3,7 +3,8 @@
 from __future__ import annotations
 import os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(ROOT), "original-challenge", "src"))
+sys.path.insert(0, ROOT)
 import pandas as pd
 from retrofit_sim.scoring import PRE_TOL, POST_TOL, SOFT_END
 
@@ -43,7 +44,7 @@ def annotate(pred, ev, assets):
 
 if __name__ == "__main__":
     pred = pd.read_csv(sys.argv[1])
-    data = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "data", "full")
+    data = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(ROOT), "data", "full")
     if "stress" in data:
         assets = pd.read_csv(os.path.join(data, "public", "assets.csv"))
         ev = pd.read_csv(os.path.join(data, "private", "events_stress_all.csv"))

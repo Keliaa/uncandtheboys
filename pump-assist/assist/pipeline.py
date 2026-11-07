@@ -31,7 +31,7 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
-                 t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True):
+                 t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -67,8 +67,8 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     for aid, idx in zf.groupby('asset_id').groups.items():
         low[aid] = {CH[k]: float((tf.loc[idx, f'trust_{k}'] < 0.5).mean()) for k in CH if f'z_{k}' in zf and zf.loc[idx, f'z_{k}'].notna().any()}
     det.attrs['low_trust_fraction'] = low      # share of minutes with trust < 0.5, per pump and channel
-    clf = None
-    if use_e02 and E02_MODEL.exists():
+    clf = classifier        # callable(asset_id, z, time) -> {fault type: probability}; overrides the E02 model
+    if clf is None and use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)
         clf = lambda a, z, t: model.predict_proba(z)
     alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=True, sensor_alone=sensor_alone), machine)

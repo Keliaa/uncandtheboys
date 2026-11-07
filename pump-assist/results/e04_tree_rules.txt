@@ -1,0 +1,28 @@
+# E04 tree rules (trained on the same rows as E02)
+
+```
+|--- suction_pressure_kpa <= -5.40
+|   |--- class: SUCTION_STRAINER_CLOGGING
+|--- suction_pressure_kpa >  -5.40
+|   |--- discharge_pressure_kpa <= 5.14
+|   |   |--- vibration_crest_factor <= -5.81
+|   |   |   |--- class: MISALIGNMENT
+|   |   |--- vibration_crest_factor >  -5.81
+|   |   |   |--- class: BEARING_WEAR
+|   |--- discharge_pressure_kpa >  5.14
+|   |   |--- motor_current_a <= -2.78
+|   |   |   |--- class: IMPELLER_WEAR
+|   |   |--- motor_current_a >  -2.78
+|   |   |   |--- class: IMPELLER_WEAR
+
+```
+
+## Comparison with the symptom table
+
+| leaf (path) | predicted type | rows | channels on the path | in the symptom table of that type |
+|---|---|---|---|---|
+| suction pressure kpa <= -5.4 | SUCTION_STRAINER_CLOGGING | 400 | suction_pressure_kpa | in: suction_pressure_kpa; not in: - |
+| suction pressure kpa > -5.4 AND discharge pressure kpa <= 5.1 AND vibration crest factor <= -5.8 | MISALIGNMENT | 203 | discharge_pressure_kpa, suction_pressure_kpa, vibration_crest_factor | in: -; not in: discharge_pressure_kpa, suction_pressure_kpa, vibration_crest_factor |
+| suction pressure kpa > -5.4 AND discharge pressure kpa <= 5.1 AND vibration crest factor > -5.8 | BEARING_WEAR | 440 | discharge_pressure_kpa, suction_pressure_kpa, vibration_crest_factor | in: vibration_crest_factor; not in: discharge_pressure_kpa, suction_pressure_kpa |
+| suction pressure kpa > -5.4 AND discharge pressure kpa > 5.1 AND motor current a <= -2.8 | IMPELLER_WEAR | 5 | discharge_pressure_kpa, motor_current_a, suction_pressure_kpa | in: discharge_pressure_kpa, motor_current_a; not in: suction_pressure_kpa |
+| suction pressure kpa > -5.4 AND discharge pressure kpa > 5.1 AND motor current a > -2.8 | IMPELLER_WEAR | 195 | discharge_pressure_kpa, motor_current_a, suction_pressure_kpa | in: discharge_pressure_kpa, motor_current_a; not in: suction_pressure_kpa |

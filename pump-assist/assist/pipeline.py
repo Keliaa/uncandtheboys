@@ -59,6 +59,8 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=True), machine)
     alerts += add_actions(physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine), machine)   # R01 also for D04 alerts
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
+    from .detect.vibration import add_snapshot_evidence, snapshot_stats      # V01: snapshot change as bearing-wear evidence
+    alerts = add_snapshot_evidence(alerts, snapshot_stats(sorted(feats.asset_id.unique()), data, splits))
     if with_what_if:
         from .recommend.whatif import add_what_if
         alerts = add_what_if(alerts, machine, data)

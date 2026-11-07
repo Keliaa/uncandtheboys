@@ -25,15 +25,22 @@ def z_frame(features: pd.DataFrame, assets: pd.DataFrame) -> pd.DataFrame:
 
 
 def detect(features: pd.DataFrame, assets: pd.DataFrame, k: float = DEFAULT_K,
-           persist: int = DEFAULT_PERSIST) -> pd.DataFrame:
+           persist: int = DEFAULT_PERSIST, trust_gate: bool = False, zf: pd.DataFrame | None = None) -> pd.DataFrame:
     """One row per pump-minute: score, flag, persistent flag and deviating channels.
 
     flag      : steady running and some |z| > k on that minute
     sustained : flag held for `persist` minutes in a row (use this to raise an alert)
     channels  : list of {channel, z} for |z| > k, largest first (input for the evidence part)
     """
-    zf = z_frame(features, assets)
+    if zf is None:
+        zf = z_frame(features, assets)
     keys = list(CH)
+    if trust_gate:      # Q01: ignore channels with trust < 0.5
+        from ..ingest.quality import TRUST_MIN, trust_frame
+        tf = trust_frame(zf)
+        zf = zf.copy()
+        for c in keys:
+            zf.loc[tf[f"trust_{c}"] < TRUST_MIN, f"z_{c}"] = np.nan
     out = []
     for a, g in zf.groupby("asset_id", sort=False):
         g = g.sort_values("window_start_utc").reset_index(drop=True)

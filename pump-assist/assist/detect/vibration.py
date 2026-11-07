@@ -29,6 +29,8 @@ def snapshot_stats(asset_ids=None, data: Path | str = DATA_FULL, splits: tuple[s
     outside = sorted(set(ids) - allowed)
     if outside:
         raise ValueError(f"pumps {outside} are not in the allowed splits {splits}")
+    if not ids:      # pumps without a vibration sensor (or none requested)
+        return pd.DataFrame(columns=['asset_id', 'snapshot_id', 'timestamp_utc', 'rms', 'crest', 'kurtosis', 'rms_ratio', 'crest_delta', 'kurt_delta', 'has_baseline', 'changed'])
     v = pd.read_parquet(Path(data) / "vibration_snapshots.parquet", filters=[("asset_id", "in", ids)])
     rows = []
     for _, r in v.iterrows():

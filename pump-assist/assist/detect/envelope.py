@@ -52,6 +52,8 @@ def bearing_envelope(asset_ids=None, data: Path | str = DATA_FULL, splits: tuple
     outside = sorted(set(ids) - allowed)
     if outside:
         raise ValueError(f"pumps {outside} are not in the allowed splits {splits}")
+    if not ids:      # pumps without a vibration sensor (or none requested)
+        return pd.DataFrame(columns=['asset_id', 'snapshot_id', 'timestamp_utc', 'snr_bpfo', 'snr_bpfi'])
     assets = pd.read_csv(data / "assets.csv").set_index("asset_id")
     v = pd.read_parquet(data / "vibration_snapshots.parquet", filters=[("asset_id", "in", ids)])
     rows = []

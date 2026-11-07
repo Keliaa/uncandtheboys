@@ -46,6 +46,8 @@ def snapshot_orders(asset_ids=None, data: Path | str = DATA_FULL, splits: tuple[
     outside = sorted(set(ids) - allowed)
     if outside:
         raise ValueError(f"pumps {outside} are not in the allowed splits {splits}")
+    if not ids:      # pumps without a vibration sensor (or none requested)
+        return pd.DataFrame(columns=['asset_id', 'snapshot_id', 'timestamp_utc', 'a1', 'a2', 'a3', 'avp', 'r1', 'r2', 'r3', 'rvp', 'has_baseline', 'm1', 'm2', 'm3', 'mvp', 'pattern'])
     vanes = pd.read_csv(data / "assets.csv").set_index("asset_id")["impeller_vanes"]
     v = pd.read_parquet(data / "vibration_snapshots.parquet", filters=[("asset_id", "in", ids)])
     rows = []

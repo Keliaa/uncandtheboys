@@ -31,11 +31,21 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
-                 t02_step_z: float | None = None):
+                 t02_step_z: float | None = None, channel_filter=None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
     feats = load_features(asset_ids, data, splits)
+    vib_ids = sorted(feats.asset_id.unique())
+    if channel_filter is not None:      # T04: pretend a pump has only some of its sensors (others become missing data)
+        feats = feats.copy()
+        for aid in feats.asset_id.unique():
+            keep = set(channel_filter(aid))
+            rows = feats.asset_id == aid
+            for ch in {c.split("__")[0] for c in feats.columns if "__" in c} - keep:
+                feats.loc[rows, [c for c in feats.columns if c.startswith(ch + "__")]] = float("nan")
+            cfg[aid].channels_available = [c for c in cfg[aid].channels_available if c in keep]
+        vib_ids = [a for a in vib_ids if "vibration_rms_mm_s" in cfg[a].channels_available]
     zf = z_frame(feats, assets)
     tf = trust_frame(zf, FLAT_MIN)
     if baseline != "static":      # T01: online expected values (always learning or guarded)
@@ -65,7 +75,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     alerts += add_actions(physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine), machine)   # R01 also for D04 alerts
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
     from .detect.vibration import add_snapshot_evidence, snapshot_stats      # V01: snapshot change as bearing-wear evidence
-    alerts = add_snapshot_evidence(alerts, snapshot_stats(sorted(feats.asset_id.unique()), data, splits))
+    alerts = add_snapshot_evidence(alerts, snapshot_stats(vib_ids, data, splits))
     if t02_alerts:      # T02: new baseline after maintenance lockouts
         from .detect.maintenance import lockout_restarts, maintenance_alerts, restart_steps
         steps = restart_steps(zf, lockout_restarts(zf))
@@ -73,12 +83,12 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         m_alerts = add_actions(maintenance_alerts(steps, cfg, machine, t02_step_z or STEP_Z), machine)
         alerts += m_alerts
     from .detect.envelope import add_envelope_evidence, bearing_alerts, bearing_envelope      # V03: bearing envelope spectrum
-    env = bearing_envelope(sorted(feats.asset_id.unique()), data, splits)
+    env = bearing_envelope(vib_ids, data, splits)
     alerts = add_envelope_evidence(alerts, env)
     if v03_alerts and not env.empty:
         alerts += bearing_alerts(env, machine)
     from .detect.orders import add_order_evidence, snapshot_orders, spectral_typing      # V02: FFT orders
-    orders = snapshot_orders(sorted(feats.asset_id.unique()), data, splits)
+    orders = snapshot_orders(vib_ids, data, splits)
     if v02_typing and not orders.empty:
         alerts = spectral_typing(alerts, orders, machine)
     alerts = add_order_evidence(alerts, orders)

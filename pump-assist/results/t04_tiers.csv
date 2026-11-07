@@ -1,0 +1,4 @@
+sensor_level,"composite_train_pumps(02,04,07)",composite_validation_pump(09),events,detected,type_correct,false_alerts_per_asset_day,alerts
+T2,57.4,79.6,15,14,5,0.57,67
+T1,48.9,76.0,15,13,4,0.68,62
+T0,40.1,41.7,15,6,0,0.0,8

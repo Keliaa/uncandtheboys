@@ -115,7 +115,7 @@ def pump_report(asset_id: str, feats: pd.DataFrame, det: pd.DataFrame, alerts: l
 <p><small>Generated {generated}. Simulation results are indicative only; see the caveats on each card.</small></p></body></html>"""
 
 
-def write_reports(asset_ids, splits, out_dir: Path | str = REPORT_DIR, data=None) -> list[Path]:
+def write_reports(asset_ids, splits, out_dir: Path | str = REPORT_DIR, data=None, engine: str | None = None) -> list[Path]:
     from datetime import datetime, timezone
     from .config import _asset_from_dict, assets_from_csv
     from .ingest.features import load_features
@@ -124,7 +124,7 @@ def write_reports(asset_ids, splits, out_dir: Path | str = REPORT_DIR, data=None
     data = data or DATA_FULL
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    det, alerts = run_pipeline(asset_ids, splits, data)
+    det, alerts = run_pipeline(asset_ids, splits, data, engine=engine)
     feats = load_features(asset_ids, data, splits)
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
     low = det.attrs.get("low_trust_fraction", {})

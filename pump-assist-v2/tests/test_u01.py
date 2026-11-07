@@ -37,6 +37,19 @@ class AppTests(unittest.TestCase):
         tmp.cleanup()
 
 
+class EngineToggleAppTests(unittest.TestCase):
+    def test_engine_selectbox_switches_to_b4(self):
+        root = Path(__file__).resolve().parents[1]
+        if not (root.parent / "data/full/features_1min.parquet").exists() or not (root.parent / "physics-context-detector/b4.py").exists():
+            self.skipTest("data or B4 missing")
+        from streamlit.testing.v1 import AppTest
+        at = AppTest.from_file(str(root / "app/main.py"), default_timeout=300).run()
+        self.assertEqual(at.sidebar.selectbox[1].value, "v2")                      # default from configs/pipeline.yaml
+        at.sidebar.selectbox[1].set_value("b4").run()
+        self.assertFalse(at.exception, at.exception)
+        self.assertTrue(any("(MACHINE)" in s.value or "(SENSOR)" in s.value for s in at.subheader))
+
+
 class ReplayDemoAppTests(unittest.TestCase):
     def test_demo_mode_shows_alert_with_evidence_action_and_what_if(self):
         from app import demo

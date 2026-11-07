@@ -15,6 +15,7 @@ import streamlit as st
 from app import demo
 from app.decisions import CHOICES, DECISIONS_CSV, load_decisions, save_decision
 from assist.pipeline import run_pipeline
+from assist.settings import ENGINES, load_settings
 from assist.splits import pumps_in
 
 CHANNELS = ["discharge_pressure_kpa", "suction_pressure_kpa", "motor_current_a", "motor_speed_rpm",
@@ -22,8 +23,8 @@ CHANNELS = ["discharge_pressure_kpa", "suction_pressure_kpa", "motor_current_a",
 
 
 @st.cache_data(show_spinner="Reading pump data")
-def load(asset_id: str):
-    det, alerts = run_pipeline([asset_id], splits=("train", "validation"))
+def load(asset_id: str, engine: str):
+    det, alerts = run_pipeline([asset_id], splits=("train", "validation"), engine=engine)
     from assist.ingest.features import load_features
     feats = load_features(asset_id, splits=("train", "validation"))
     return det, alerts, feats
@@ -105,7 +106,9 @@ def main():
         return
     pumps = pumps_in("train") + pumps_in("validation")
     asset = st.sidebar.selectbox("Pump", pumps, index=pumps.index("PUMP-08"))
-    det, alerts, feats = load(asset)
+    engines = list(ENGINES)       # configs/pipeline.yaml: engine v2 (this folder's methods) or b4 (the B4 detector, reference)
+    engine = st.sidebar.selectbox("Engine", engines, index=engines.index(load_settings().engine), help="v2: generator-free methods. b4: the B4 detector (uses simulator constants).")
+    det, alerts, feats = load(asset, engine)
     st.sidebar.write(f"{len(alerts)} alert(s) for {asset}")
 
     left, right = st.columns([3, 2])

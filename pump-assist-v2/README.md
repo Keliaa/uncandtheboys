@@ -4,6 +4,18 @@ Starting point: a copy of `../pump-assist` at its final commit on `exp/practical
 
 # Pump assist
 
+## Switchboard: `configs/pipeline.yaml`
+
+One file sets every method. `engine: v2` runs this folder's generator-free methods. `engine: b4` runs the B4 detector (`../physics-context-detector`, imported
+unchanged, read only) and returns its alerts as the same records, so the app, the reports and the scorer work with either. With `b4` the scores equal B4's:
+train 92.3, validation 95.7, stress 87.7 (v2: 66.1, 85.5, 58.9; `results/engines_compare.csv`), and the test-pump alerts equal B4's frozen file.
+Ways to switch (argument over environment over file): `run_pipeline(..., engine="b4")`, `PUMP_ASSIST_ENGINE=b4`, `engine:` in the file, the Engine box in the app,
+`python scripts/make_reports.py --engine b4`. B4's own parameters are in `b4.params` / `b4.params_file` (choose them on train pumps only); every v2 method
+(detector limits, benign hold, physics, quality, maintenance, evidence, episodes, derived-channel check, options that were tried and not kept) has its own key.
+B4 uses the simulator's pump curve, control laws and profile constants, so it is the reference to beat, not part of the generator-free v2.
+
+# Pump assist
+
 Implementation of the practical worklist ([docs/elias/practical_worklist.html](../docs/elias/practical_worklist.html)):
 ingest, detect, evidence, recommend, operator app, static reports and scoring. Everything this experiment writes stays in
 this folder. It reads `../data/full` and imports the read-only reference code in `../original-challenge/src`.

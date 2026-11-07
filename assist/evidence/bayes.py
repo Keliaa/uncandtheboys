@@ -61,6 +61,13 @@ class GaussianNB:
         tot = sum(e.values())
         return {c: v / tot for c, v in e.items()}
 
+    @classmethod
+    def load(cls, path) -> "GaussianNB":
+        d = json.loads(Path(path).read_text())
+        m = cls(d["channels"], d["var_floor"])
+        m.classes, m.mean, m.var = d["classes"], np.array(d["mean"]), np.array(d["var"])
+        return m
+
     def save(self, path) -> None:
         Path(path).write_text(json.dumps({"channels": self.channels, "classes": self.classes, "var_floor": self.var_floor,
                                           "mean": self.mean.tolist(), "var": self.var.tolist()}, indent=1))

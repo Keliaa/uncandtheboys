@@ -1,6 +1,11 @@
-"""The version 1 chain: ingest (I01) -> detect (D01) -> evidence (E01) -> recommend (R01).
+"""The assistant, end to end, with the settings frozen from the train/validation work.
 
+ingest (I01) -> quality (Q01) -> detect (D01 robust z, D04 physics, with D06 benign-period hold)
+-> evidence (E01 rules, E02 naive Bayes) -> recommend (R01).
 Reads telemetry only. Nothing here writes to a pump. The split guard decides which pumps may be used.
+
+Frozen settings: D01 k=8, persist 10 | D04 limit 2 %, persist 30 | Q01 gap 30, frozen 30 |
+D06 tail 60 min, Hs 2.2 m | E02 model trained on train events only (results/e02_model.json).
 """
 from __future__ import annotations
 
@@ -8,20 +13,38 @@ import pandas as pd
 
 from .alert import AlertRecord, SUBMISSION_COLUMNS, to_submission_rows
 from .config import _asset_from_dict, assets_from_csv, load_machine
-from .detect.zscore import DEFAULT_K, DEFAULT_PERSIST, detect, to_alerts_with_rules
+from .detect.benign import benign_minutes
+from .detect.physics import detect_physics, physics_alerts
+from .detect.zscore import DEFAULT_K, DEFAULT_PERSIST, detect, to_alerts_with_rules, z_frame
+from .evidence.bayes import GaussianNB
 from .ingest.features import load_assets, load_features
+from .ingest.quality import sensor_alerts, trust_frame
 from .recommend.actions import add_actions
-from .splits import DATA_FULL
+from .splits import DATA_FULL, REPO_ROOT
+
+PHYS_LIMIT, PHYS_PERSIST = 2.0, 30
+GAP_PERSIST = FLAT_MIN = 30
+BENIGN_TAIL, HS_LIMIT = 60, 2.2
+E02_MODEL = REPO_ROOT / "results" / "e02_model.json"
 
 
-def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL,
-                 k: float = DEFAULT_K, persist: int = DEFAULT_PERSIST):
-    """Returns (detection frame with per-minute scores, list of AlertRecord)."""
+def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True):
+    """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
     feats = load_features(asset_ids, data, splits)
-    det = detect(feats, assets, k, persist)
-    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, k), machine)
+    zf = z_frame(feats, assets)
+    tf = trust_frame(zf, FLAT_MIN)
+    ben = benign_minutes(sorted(feats.asset_id.unique()), data, tail_min=BENIGN_TAIL, hs_limit=HS_LIMIT)
+    det = detect(feats, assets, DEFAULT_K, DEFAULT_PERSIST, trust_gate=True, zf=zf, benign=ben)
+    clf = None
+    if use_e02 and E02_MODEL.exists():
+        model = GaussianNB.load(E02_MODEL)
+        clf = lambda a, z, t: model.predict_proba(z)
+    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf), machine)
+    alerts += physics_alerts(detect_physics(feats, assets, machine, PHYS_LIMIT, PHYS_PERSIST, benign=ben), machine)
+    alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
+    alerts.sort(key=lambda a: (a.asset_id, a.alert_time_utc))
     return det, alerts
 
 

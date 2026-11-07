@@ -29,9 +29,9 @@ from common import pdm  # noqa: E402
 BUNDLE_LABEL = "Recorded replay · synthetic pump data"
 FLEET_LABEL = "Fleet replay · synthetic pump data"
 IMPACT_LABEL = "Impact estimates · synthetic data, editable assumptions"
-ASSUMPTIONS = {"labour_rate_eur_h": 80, "downtime_cost_eur_h": 1500, "repair_unplanned_eur": 9000,
-               "repair_planned_eur": 4000, "unplanned_stop_h": 10, "planned_stop_h": 3, "false_alert_check_eur": 120,
-               "source": "organiser business_case.py defaults + team labour rate"}
+# Hand-written texts and assumptions of the cockpit's Impact page (labels, hardware costs, business-case inputs).
+IMPACT_TEXT = json.loads((HERE / "impact_text.json").read_text(encoding="utf-8"))
+ASSUMPTIONS = IMPACT_TEXT["assumptions"]
 MAX_SIMULATED = 32
 
 # Second alert engine: Elias's pump-assist v2 (generator-free methods), read from its committed result files.
@@ -310,8 +310,23 @@ def maintenance_summary(data: Path) -> dict:
     st = m[m.work_type == "STRAINER_CLEANING"]
     strainer = {"cleanings": len(st), "found_clean": int((st.cls == "no_finding").sum()),
                 "found_light": int((st.cls == "light").sum()), "found_moderate": int((st.cls == "justified").sum())}
-    return {"period": {"start_utc": C.iso(s.min()), "end_utc": C.iso(e.max())}, "fleet": fleet,
-            "by_work_type": by_type, "by_pump": by_pump, "strainer": strainer}
+    strainer["other"] = strainer["cleanings"] - strainer["found_clean"] - strainer["found_light"] - strainer["found_moderate"]
+    # the Impact page's grouping: named work types in its order, everything else as one "repairs and other" row
+    named = dict(IMPACT_TEXT["work_types"])
+    rows = []
+    for w, label in IMPACT_TEXT["work_types"]:
+        g = m[m.work_type == w]
+        rows.append({"work_type": w, "label": label, "records": len(g), "hours": g.hours.sum(),
+                     "no_finding_records": int((g.cls == "no_finding").sum()),
+                     "no_finding_hours": g.hours[g.cls == "no_finding"].sum()})
+    g = m[~m.work_type.isin(named)]
+    ow, olabel = IMPACT_TEXT["other_work_type"]
+    rows.append({"work_type": ow, "label": olabel, "records": len(g), "hours": g.hours.sum(),
+                 "no_finding_records": int((g.cls == "no_finding").sum()),
+                 "no_finding_hours": g.hours[g.cls == "no_finding"].sum()})
+    return {"period": {"start_utc": C.iso(s.min()), "end_utc": C.iso(s.max())},   # first and latest record start
+            "pumps": int(m.asset_id.nunique()), "fleet": fleet, "by_work_type": rows,
+            "by_work_type_detail": by_type, "by_pump": by_pump, "strainer": strainer}
 
 
 def _eval_module():
@@ -373,6 +388,44 @@ def detector_summary(data: Path, stress_raw: dict) -> dict:
     return res
 
 
+UI_METRICS = {"composite": "composite", "fault_type_recall": "fault_type_recall", "event_recall": "event_recall",
+              "false_alerts_per_pump_day": "false_excess_alerts_per_asset_day", "class_recall": "class_recall",
+              "median_lead_time_to_deadline_h": "median_lead_time_to_deadline_h",
+              "median_delay_after_detectable_h": "median_delay_after_detectable_h"}
+
+
+def detector_for_page(res: dict) -> dict:
+    """Metric-first layout the Impact page reads: detector.<id>.<metric>.{train, validation, unseen_simulated}."""
+    out = {}
+    for det, splits in res.items():
+        d = {"name": IMPACT_TEXT["detector_names"].get(det, det)}
+        for ui, key in UI_METRICS.items():
+            d[ui] = {"train": splits["train"][key], "validation": splits["validation"][key],
+                     "unseen_simulated": splits.get("simulated", {}).get(key)}
+        sim = splits.get("simulated")
+        d["unseen_simulated_pumps"] = None if not sim else sim["fleets"] * 8
+        d["by_split"] = splits
+        out[det] = d
+    n = {k: v["unseen_simulated_pumps"] for k, v in out.items()}
+    out["unseen_note"] = (f"{n.get('b4')} simulated pumps the detector never saw"
+                          + (f" (pump assist v2: {n['v2']}, from its own stress comparison)" if n.get("v2") and
+                             n.get("v2") != n.get("b4") else ""))
+    return out
+
+
+def tiers_for_page() -> list:
+    t = pd.read_csv(C.TIER_ABLATION).set_index("tier")
+    out = []
+    for x in IMPACT_TEXT["tiers"]:
+        r = t.loc[x["ablation"]] if x["ablation"] in t.index else None
+        out.append({"tier": x["tier"], "label": x["label"], "hardware_eur": x["hardware_eur"], "sees": x["sees"],
+                    "composite": None if r is None else float(r.composite),
+                    "event_recall": None if r is None else float(r.recall),
+                    "fault_type_recall": None if r is None else float(r.type_rec),
+                    "composite_note": IMPACT_TEXT["tier_composite_note"]})
+    return out
+
+
 def tier_ablation() -> list:
     t = pd.read_csv(C.TIER_ABLATION)
     return [{"tier": r.tier, "composite": r.composite, "event_recall": r.recall, "fault_type_recall": r.type_rec}
@@ -415,8 +468,9 @@ def export(out: Path, data: Path, stress_root: Path, max_sim: int) -> dict:
     fleet_v2, in_v2 = build_fleet(v2, params, label=FLEET_LABEL + " · pump-assist v2 alerts")
     log("building impact.json (scoring B1, B4 and v2) ...")
     impact = C.clean({"format": "impact/1", "label": IMPACT_LABEL, "assumptions": ASSUMPTIONS,
-                      "maintenance": maintenance_summary(data), "detector": detector_summary(data, stress_raw),
-                      "tier_ablation": tier_ablation(), "per_pump_exposure": exposure(in_fleet),
+                      "maintenance": maintenance_summary(data),
+                      "detector": detector_for_page(detector_summary(data, stress_raw)),
+                      "tiers": tiers_for_page(), "tier_ablation": tier_ablation(), "per_pump_exposure": exposure(in_fleet),
                       "per_pump_exposure_by_engine": {"b4": exposure(in_fleet), "v2": exposure(in_v2)}})
     sc = lambda lst: [{"chapter": b["scene"]["chapter"], "id": n[:-5], "file": n} for n, b in lst]
     manifest = {"format": pdm.BUNDLE_FORMAT, "label": BUNDLE_LABEL, "generated_utc": commit_ts, "source_commit": sha,

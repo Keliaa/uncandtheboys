@@ -1,0 +1,38 @@
+{
+ "_note": "Hand-written text and assumptions for impact.json, taken from the Impact page the team built in Lovable (cockpit commit 2fa4f8f). Numbers that can be computed are not stored here; the exporter computes them.",
+ "assumptions": {
+  "labour_rate_eur_h": 80,
+  "downtime_cost_eur_h": 1500,
+  "repair_unplanned_eur": 9000,
+  "repair_planned_eur": 4000,
+  "unplanned_stop_h": 10,
+  "planned_stop_h": 3,
+  "false_alert_check_eur": 120,
+  "developing_faults_per_year": 0.6,
+  "operating_cost_eur_year": 700,
+  "installed_cost_eur": 4500,
+  "history_years_per_pump": 2.4,
+  "source": "Organiser business case defaults (RETROFIT_FEASIBILITY.md) + team labour rate 80 EUR/h"
+ },
+ "work_types": [
+  ["ROUTINE_INSPECTION", "Routine inspection"],
+  ["STRAINER_CLEANING", "Strainer cleaning"],
+  ["VIBRATION_ROUTE_MEASUREMENT", "Vibration route measurement"],
+  ["LUBRICATION", "Lubrication (always needed)"],
+  ["ALIGNMENT_CHECK", "Alignment check"],
+  ["COUPLING_INSPECTION", "Coupling inspection"],
+  ["INSTRUMENT_CHECK", "Instrument check"]
+ ],
+ "other_work_type": ["CORRECTIVE_AND_OTHER", "Repairs and other work"],
+ "detector_names": {"b1": "B1 baseline", "b4": "Our detector (B4)", "v2": "Pump assist v2"},
+ "tiers": [
+  {"tier": "T0_LEGACY", "ablation": "T0", "label": "Existing signals only", "hardware_eur": "about 500 to 600 (edge computer)",
+   "sees": "Restriction, impeller wear, clogging on variable-speed pumps, stuck or offset transmitters, data loss"},
+  {"tier": "T1_RETROFIT", "ablation": "T1", "label": "Low-cost retrofit",
+   "hardware_eur": "plus 145 to 288 per pressure transmitter and 300 to 1,500 per wireless vibration point",
+   "sees": "Adds suction-side clogging and cavitation, early bearing damage, imbalance, misalignment"},
+  {"tier": "T2_FULL", "ablation": "T2", "label": "Fully instrumented", "hardware_eur": "about 2,100 to 3,100 per pump",
+   "sees": "Operating point and efficiency, fast faults, clearest sensor versus machine split"}
+ ],
+ "tier_composite_note": "B4 composite on the four fully instrumented pumps with their channels reduced to this tier"
+}

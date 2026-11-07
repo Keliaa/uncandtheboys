@@ -103,6 +103,14 @@ publishes alerts, not levels or durations; the 12 h hold mirrors the scorer's on
 tile does not go quiet between reminders.
 
 ### impact.json (`impact/1`)
+Laid out the way the cockpit's Impact page (`src/data/impact.ts`) reads it. Its hand-written parts (business-case
+assumptions, work-type labels, retrofit-tier labels, hardware costs, detector names) live in `impact_text.json`, copied
+from the page the team built in Lovable; edit them there, not in the cockpit, or the next export overwrites them.
+Everything numeric is computed: `detector.<id>.<metric>.{train, validation, unseen_simulated}` from the official
+scorer (plus `by_split` with every metric), `tiers[].composite` from the tier ablation, maintenance from the CSV
+(`period` = first and latest record start, `by_work_type` = the page's grouping with the rest as CORRECTIVE_AND_OTHER,
+`by_work_type_detail` = every work type).
+
 * `assumptions`: editable cost assumptions (organiser `business_case.py` defaults + team labour rate).
 * `maintenance`: from `data/full/maintenance.csv`, hours = end_utc - start_utc. Classification:
   * no_finding: ROUTINE_INSPECTION "no abnormal findings"; STRAINER_CLEANING "Clean."; VIBRATION_ROUTE_MEASUREMENT in

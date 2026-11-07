@@ -164,13 +164,28 @@ def check_impact(d, ck):
                "impact", ck):
         return
     ck.check(d["format"] == "impact/1", "impact: format")
-    has(d["maintenance"], ["period", "fleet", "by_work_type", "by_pump", "strainer"], "impact.maintenance", ck)
+    has(d["maintenance"], ["period", "pumps", "fleet", "by_work_type", "strainer"], "impact.maintenance", ck)
+    has(d["assumptions"], ["labour_rate_eur_h", "downtime_cost_eur_h", "unplanned_stop_h", "planned_stop_h",
+                           "repair_unplanned_eur", "repair_planned_eur", "developing_faults_per_year",
+                           "false_alert_check_eur", "operating_cost_eur_year", "installed_cost_eur",
+                           "history_years_per_pump", "source"], "impact.assumptions", ck)
+    for w in d["maintenance"]["by_work_type"]:
+        has(w, ["work_type", "label", "records", "hours", "no_finding_records", "no_finding_hours"], "impact.work_type", ck)
+    has(d["maintenance"]["strainer"], ["cleanings", "found_clean", "found_light", "found_moderate", "other"],
+        "impact.strainer", ck)
+    ck.check(isinstance(d.get("tiers"), list) and d["tiers"], "impact: tiers missing")
+    for t in d.get("tiers", []):
+        has(t, ["tier", "label", "hardware_eur", "sees", "composite"], "impact.tier", ck)
+    ck.check(isinstance(d["detector"].get("unseen_note"), str), "impact.detector.unseen_note missing")
     has(d["maintenance"]["fleet"], ["records", "hours", "no_finding_records", "no_finding_hours",
                                     "no_finding_share_hours", "light_finding_records", "justified_records",
                                     "corrective_records"], "impact.maintenance.fleet", ck)
     for det in ("b1", "b4"):
-        ck.check(det in d["detector"] and {"train", "validation"} <= set(d["detector"][det]),
-                 f"impact.detector.{det}: train/validation missing")
+        x = d["detector"].get(det, {})
+        if has(x, ["name", "composite", "fault_type_recall", "event_recall", "false_alerts_per_pump_day"],
+               f"impact.detector.{det}", ck):
+            ck.check({"train", "validation", "unseen_simulated"} <= set(x["composite"]),
+                     f"impact.detector.{det}.composite needs train/validation/unseen_simulated")
 
 
 # ---------------------------------------------------------------------------------------------- causality
@@ -295,10 +310,9 @@ def main(argv=None) -> int:
         print(f"maintenance: {mf['records']} records, {mf['no_finding_records']} with no finding, "
               f"{mf['no_finding_share_hours']:.1%} of hours, {mf['no_finding_hours']:.0f} h no-finding work")
         for det in [d for d in ("b1", "b4", "v2") if d in imp["detector"]]:
-            r = imp["detector"][det]
-            sim = r.get("simulated", {}).get("composite")
-            print(f"{det.upper()} composite: train {r['train']['composite']}, validation {r['validation']['composite']}"
-                  + (f", simulated {sim}" if sim is not None else ""))
+            c = imp["detector"][det]["composite"]
+            print(f"{det.upper()} composite: train {c['train']}, validation {c['validation']}, "
+                  f"unseen simulated {c['unseen_simulated']}")
     print(f"causality re-check: {causal} snapshots recomputed from truncated data")
     if ck.errors:
         print(f"\nVALIDATION FAILED ({len(ck.errors)} problems):")

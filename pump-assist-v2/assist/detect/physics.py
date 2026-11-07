@@ -9,6 +9,8 @@ Only the alert limit and persistence are chosen on train pumps (scripts/tune_d04
 """
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -32,7 +34,8 @@ def head_residual(features: pd.DataFrame, assets: pd.DataFrame, machine: dict) -
         run = steady.astype(int).groupby((~steady).cumsum()).cumsum()
         ok = run >= ph.get("steady_min_minutes", 10)
         col = lambda c: g[c] if c in g else pd.Series(np.nan, index=g.index)
-        sal = ph.get("brackish_salinity_psu", 6.0) if "brackish" in str(A.fluid).lower() else 0.0
+        m = re.search(r"([\d.]+)\s*PSU", str(A.fluid), flags=re.I)        # salinity from the public asset sheet text, e.g. "Seawater (brackish, ~6 PSU)"
+        sal = float(m.group(1)) if m else 0.0
         rho = P.water_density(col("fluid_temp_c__mean").fillna(20.0), sal)
         n = col("motor_speed_rpm__mean")
         r = n / A.motor_rated_rpm if n.notna().any() else pd.Series(1.0, index=g.index)

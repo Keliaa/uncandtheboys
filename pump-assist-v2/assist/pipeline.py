@@ -29,10 +29,11 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
-                 d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
+                 d02_limit: float | None = None, with_what_if: bool = False, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
                  t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
-                 features: pd.DataFrame | None = None, gate=True, regime: str = "speed", d07_models=None, episodes: int | None = 1440):
+                 features: pd.DataFrame | None = None, gate=True, regime: str = "speed", d07_models=None, episodes: int | None = 1440, stable_min: int = 1,
+                 ewma: tuple | None = None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -63,6 +64,11 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
         from .detect.pca import pca_flags
         pf = pca_flags(zf, assets, d03_models)[["asset_id", "window_start_utc", "flag"]]
         extra = pf if extra is None else pd.concat([extra, pf]).groupby(["asset_id", "window_start_utc"], as_index=False).flag.max()
+    if ewma is not None:       # smoothed z flags (span, limit), segments reset at stops
+        from .detect.smoothing import smoothed_scores
+        sc = smoothed_scores(zf, int(ewma[0]))
+        ef = sc.assign(flag=sc.ewma_score > float(ewma[1]))[["asset_id", "window_start_utc", "flag"]]
+        extra = ef if extra is None else pd.concat([extra, ef]).groupby(["asset_id", "window_start_utc"], as_index=False).flag.max()
     if d07_models is not None:     # D07: add autoencoder reconstruction-error flags
         from .detect.autoencoder import autoencoder_flags
         af = autoencoder_flags(zf, assets, d07_models)[["asset_id", "window_start_utc", "flag"]]
@@ -77,7 +83,7 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if clf is None and use_e02 and E02_MODEL.exists():
         model = GaussianNB.load(E02_MODEL)
         clf = lambda a, z, t: model.predict_proba(z)
-    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=gate, sensor_alone=sensor_alone), machine)
+    alerts = add_actions(to_alerts_with_rules(det, cfg, machine, DEFAULT_K, classifier=clf, gate=gate, sensor_alone=sensor_alone, stable_min=stable_min), machine)
     if e03_shape:      # E03: slow sensor movement is a drift, a jump is a calibration shift
         from .evidence.sensor import refine_sensor_types
         alerts = refine_sensor_types(alerts, zf, machine)
@@ -109,6 +115,9 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     if with_what_if:
         from .recommend.whatif import add_what_if
         alerts = add_what_if(alerts, machine, data)
+    else:      # the sandbox uses simulator profile defaults, so v2 leaves it out unless asked; drop the stub R01 put there
+        for a in alerts:
+            a.what_if = None
     alerts.sort(key=lambda a: (a.asset_id, a.alert_time_utc))
     return det, alerts
 

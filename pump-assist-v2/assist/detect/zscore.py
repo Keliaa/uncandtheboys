@@ -116,21 +116,50 @@ def to_alerts(det: pd.DataFrame, refractory: pd.Timedelta = REFRACTORY):
 
 def to_alerts_with_rules(det: pd.DataFrame, assets_cfg: dict, machine: dict, k: float = DEFAULT_K,
                          refractory: pd.Timedelta = REFRACTORY, classifier=None, gate: bool = False,
-                         sensor_alone: float | None = None):
+                         sensor_alone: float | None = None, stable_min: int = 1):
     """Like to_alerts, but E01 gives fault type, confidence, certainty and evidence text.
 
     assets_cfg: asset_id -> assist.config.Asset.
+    stable_min: the first alert of a sustained stretch waits until the diagnosed (class, type) has been the same for this many
+    minutes in a row (B4 idea #12); 1 = alert at the first sustained minute. A stretch that ends before it is stable gives no alert.
     """
     from ..alert import AlertRecord
     from ..evidence.rules import apply_classifier, classify
+    alone = [] if sensor_alone is None else [sensor_alone]
+
+    def diagnose(a, r):
+        d = classify(r.z_all, assets_cfg[a], machine, k, *alone)
+        if classifier is not None and d["event_class"] == "MACHINE":
+            d = apply_classifier(d, classifier(a, r.z_all, r.available_utc), assets_cfg[a], machine, r.z_all, k, gate)
+        return d
+
     alerts = []
     for a, g in det.groupby("asset_id", sort=False):
         last = {}
-        starts = g[g.sustained & ~g.sustained.shift(fill_value=False) & ~g.in_baseline]
-        for _, r in starts.iterrows():
-            d = classify(r.z_all, assets_cfg[a], machine, k, *( [] if sensor_alone is None else [sensor_alone]))
-            if classifier is not None and d["event_class"] == "MACHINE":
-                d = apply_classifier(d, classifier(a, r.z_all, r.available_utc), assets_cfg[a], machine, r.z_all, k, gate)
+        live = (g.sustained & ~g.in_baseline).to_numpy()
+        rows = g.reset_index(drop=True)
+        i = 0
+        while i < len(rows):
+            if not live[i]:
+                i += 1
+                continue
+            j = i
+            while j < len(rows) and live[j]:
+                j += 1
+            chosen, prev, count = None, None, 0            # rows i..j-1 are one sustained stretch
+            for q in range(i, j):
+                r = rows.iloc[q]
+                d = diagnose(a, r)
+                key = (d["event_class"], d["fault_type"])
+                count = count + 1 if key == prev else 1
+                prev = key
+                if count >= stable_min:
+                    chosen = (r, d)
+                    break
+            i = j
+            if chosen is None:
+                continue
+            r, d = chosen
             if d["fault_type"] in last and r.available_utc - last[d["fault_type"]] < refractory:
                 continue
             last[d["fault_type"]] = r.available_utc

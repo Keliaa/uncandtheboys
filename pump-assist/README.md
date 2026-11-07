@@ -8,7 +8,7 @@ Splits are kept: settings are chosen on train pumps (PUMP-01 to 07), validation 
 run with frozen settings and never scored or tuned. `assist/splits.py` has the guards (`require_split`, `splits=` arguments).
 
 ```
-assist/      code: alert record (S01), config loader (S02), ingest (I01, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants),
+assist/      code: alert record (S01), config loader (S02), ingest (I01, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants, T02 after-maintenance steps),
              evidence (E01, E02), recommend (R01, R02), pipeline.py (frozen end-to-end system), report.py (U02)
 app/         Streamlit operator app (U01)
 configs/     machine file (channels, symptom table, action table, physics) and generated per-asset files
@@ -32,7 +32,7 @@ streamlit run pump-assist/app/main.py
 | System | Train | Validation |
 |---|---|---|
 | B1 baseline | 58.2 | 78.0 |
-| Frozen system (D01 + D04 + Q01 + D06 + E01/E02 with rule gate + R01) | 61.8 | 81.9 |
+| Frozen system (D01 + D04 + Q01 + D06 + E01/E02 with rule gate + R01 + T02) | 63.1 | 85.5 |
 
 Full table: `results/results.md`. Validation has 9 events on 2 pumps, so small differences are not meaningful. Known issues: E02
 probabilities are overconfident (0.98 stated vs 0.65 correct on 28 alerts); D04 raises many alerts on PUMP-12 because its

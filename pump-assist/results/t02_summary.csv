@@ -1,0 +1,3 @@
+variant,train,validation,FA_day_train,FA_day_val,post_lockout_events,detected,type_correct,mean_timeliness
+frozen,61.8,81.9,0.27,0.14,10,7,3,0.66
++ T02 after-maintenance alerts,63.1,85.5,0.33,0.14,10,7,4,0.7

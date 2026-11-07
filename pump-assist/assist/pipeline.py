@@ -4,7 +4,7 @@ ingest (I01) -> quality (Q01) -> detect (D01 robust z, D04 physics, with D06 ben
 -> evidence (E01 rules, E02 naive Bayes) -> recommend (R01).
 Reads telemetry only. Nothing here writes to a pump. The split guard decides which pumps may be used.
 
-Frozen settings: D01 k=8, persist 10 | D04 limit 2 %, persist 30 | Q01 gap 30, frozen 30 |
+Frozen settings: D01 k=8, persist 10 | T02 after-maintenance step 8 spreads (2 h learning window) | D04 limit 2 %, persist 30 | Q01 gap 30, frozen 30 |
 D06 tail 60 min, Hs 2.2 m | E02 model trained on train events only (results/e02_model.json).
 """
 from __future__ import annotations
@@ -30,7 +30,8 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
-                 v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static"):
+                 v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
+                 t02_step_z: float | None = None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
@@ -65,6 +66,12 @@ def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FU
     alerts += sensor_alerts(zf, tf, machine, GAP_PERSIST, FLAT_MIN)
     from .detect.vibration import add_snapshot_evidence, snapshot_stats      # V01: snapshot change as bearing-wear evidence
     alerts = add_snapshot_evidence(alerts, snapshot_stats(sorted(feats.asset_id.unique()), data, splits))
+    if t02_alerts:      # T02: new baseline after maintenance lockouts
+        from .detect.maintenance import lockout_restarts, maintenance_alerts, restart_steps
+        steps = restart_steps(zf, lockout_restarts(zf))
+        from .detect.maintenance import STEP_Z
+        m_alerts = add_actions(maintenance_alerts(steps, cfg, machine, t02_step_z or STEP_Z), machine)
+        alerts += m_alerts
     from .detect.envelope import add_envelope_evidence, bearing_alerts, bearing_envelope      # V03: bearing envelope spectrum
     env = bearing_envelope(sorted(feats.asset_id.unique()), data, splits)
     alerts = add_envelope_evidence(alerts, env)

@@ -104,19 +104,21 @@ def to_alerts(det: pd.DataFrame, refractory: pd.Timedelta = REFRACTORY):
 
 
 def to_alerts_with_rules(det: pd.DataFrame, assets_cfg: dict, machine: dict, k: float = DEFAULT_K,
-                         refractory: pd.Timedelta = REFRACTORY):
+                         refractory: pd.Timedelta = REFRACTORY, classifier=None):
     """Like to_alerts, but E01 gives fault type, confidence, certainty and evidence text.
 
     assets_cfg: asset_id -> assist.config.Asset.
     """
     from ..alert import AlertRecord
-    from ..evidence.rules import classify
+    from ..evidence.rules import apply_classifier, classify
     alerts = []
     for a, g in det.groupby("asset_id", sort=False):
         last = {}
         starts = g[g.sustained & ~g.sustained.shift(fill_value=False) & ~g.in_baseline]
         for _, r in starts.iterrows():
             d = classify(r.z_all, assets_cfg[a], machine, k)
+            if classifier is not None and d["event_class"] == "MACHINE":
+                d = apply_classifier(d, classifier(a, r.z_all, r.available_utc), assets_cfg[a], machine)
             if d["fault_type"] in last and r.available_utc - last[d["fault_type"]] < refractory:
                 continue
             last[d["fault_type"]] = r.available_utc

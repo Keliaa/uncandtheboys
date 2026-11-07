@@ -82,3 +82,23 @@ def classify(z: dict[str, float], asset: Asset, machine: dict[str, Any], k: floa
     return dict(event_class=cls, fault_type=ft, probability=float(p), certainty=label,
                 top_types=[(t, float(s)) for t, s in ranked[:3]], evidence=dev_text,
                 recommended_action=action_for(machine, ft)["text"])
+
+
+def apply_classifier(d: dict[str, Any], probs: dict[str, float], asset: Asset, machine: dict[str, Any]) -> dict[str, Any]:
+    """E02: replace the rule-based type and confidence with classifier probabilities (machine faults only).
+
+    Types the pump cannot show (symptom `needs` not met) are removed and the rest renormalised.
+    """
+    allowed = set(usable_symptoms(machine, asset))
+    probs = {t: p for t, p in probs.items() if t in allowed}
+    tot = sum(probs.values())
+    if tot <= 0:
+        return d
+    ranked = sorted(((t, p / tot) for t, p in probs.items()), key=lambda kv: -kv[1])
+    best, p = ranked[0]
+    label = certainty_label(p, machine)
+    ft = UNKNOWN if label == "Low" else best
+    out = dict(d)
+    out.update(fault_type=ft, probability=float(p), certainty=label, top_types=[(t, float(q)) for t, q in ranked[:3]],
+               recommended_action=action_for(machine, ft)["text"])
+    return out

@@ -1,0 +1,14 @@
+Replay of PUMP-08 (validation) from 2025-09-08T00:00:00Z to 2025-09-12T00:00:00Z; system check every 180 simulated minutes
+[replay 09-10 21:00] ALERT 2025-09-10T18:17:00Z MACHINE SUCTION_STRAINER_CLOGGING | certainty High (100%)
+    evidence: suction pressure is low (z = -8.4)
+    action: Inspect and clean the suction strainer.
+    what-if: flow +8.7 %, risk 0.16 -> 0.16, cost ~275 EUR
+    decision (scripted): approved
+[replay 09-11 12:00] ALERT 2025-09-11T09:54:00Z MACHINE BEARING_WEAR | certainty High (86%)
+    evidence: suction pressure is low (z = -14.4)
+    evidence: Vibration snapshot at 2025-09-11 09:07 shows no clear change (this argues against bearing wear): RMS 1.03 x start value, crest factor +0.28, kurtosis +0.15
+    evidence: Envelope spectrum at 2025-09-11 09:07: peak at BPFO (outer race) is 4 x the noise floor (no bearing defect peak; this argues against bearing wear)
+    action: Inspect the bearing and the lubrication. Plan a bearing replacement.
+    what-if: flow +0.0 %, risk 0.24 -> 0.17, cost ~1800 EUR
+    decision (scripted): approved
+Replay done: 5760 minutes, 2 alerts, 48 s wall time

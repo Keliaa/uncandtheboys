@@ -8,9 +8,9 @@ Splits are kept: settings are chosen on train pumps (PUMP-01 to 07), validation 
 run with frozen settings and never scored or tuned. `assist/splits.py` has the guards (`require_split`, `splits=` arguments).
 
 ```
-assist/      code: alert record (S01), config loader (S02), ingest (I01, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants, T02 after-maintenance steps, E03 sensor-vs-machine; E04 tree for comparison),
+assist/      code: alert record (S01), config loader (S02), ingest (I01, I02 replay, Q01), detect (D01, D02, D03, D04, D06, V01, V02, V03, T01 baseline variants, T02 after-maintenance steps, E03 sensor-vs-machine; E04 tree for comparison),
              evidence (E01, E02), recommend (R01, R02), pipeline.py (frozen end-to-end system), report.py (U02)
-app/         Streamlit operator app (U01)
+app/         Streamlit operator app (U01) with a replay-demo mode (C03)
 configs/     machine file (channels, symptom table, action table, physics) and generated per-asset files
 scripts/     tuning and scoring scripts (tune_*.py choose settings on train only), c01_score.py, c02_test_file.py, make_reports.py
 tests/       unit tests
@@ -24,6 +24,7 @@ python -m pytest pump-assist/tests
 python pump-assist/scripts/c01_score.py          # results table with baselines B0-B3
 python pump-assist/scripts/c02_test_file.py      # frozen system on PUMP-10..12
 python pump-assist/scripts/make_reports.py       # open pump-assist/results/reports/index.html
+# C03 demo (replay of PUMP-08 -> alerts -> scripted decisions, then choose "Replay demo" in the app): python pump-assist/scripts/c03_demo.py
 # T03: python original-challenge/make_dataset.py --tier stress --seed 101 --stress-assets 8 --days 7 --output pump-assist/build/stress_101 (seeds 101-103), then pump-assist/scripts/eval_t03.py
 streamlit run pump-assist/app/main.py
 ```

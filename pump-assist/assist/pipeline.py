@@ -31,11 +31,13 @@ E02_MODEL = EXP_ROOT / "results" / "e02_model.json"
 def run_pipeline(asset_ids, splits=("train", "validation", "test"), data=DATA_FULL, use_e02: bool = True,
                  d02_limit: float | None = None, with_what_if: bool = True, d03_models=None, d01_flags: bool = True,
                  v03_alerts: bool = False, v02_typing: bool = False, baseline: str = "static", t02_alerts: bool = True,
-                 t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None):
+                 t02_step_z: float | None = None, channel_filter=None, sensor_alone: float | None = None, e03_shape: bool = True, classifier=None,
+                 features: pd.DataFrame | None = None):
     """Returns (detection frame with per-minute scores, list of AlertRecord) for the given pumps."""
     assets, machine = load_assets(data), load_machine()
     cfg = {d["asset_id"]: _asset_from_dict(d) for d in assets_from_csv(f"{data}/assets.csv")}
-    feats = load_features(asset_ids, data, splits)
+    # features: 1-minute rows from the replay stream (I02); otherwise the rows are read from the feature file (I01)
+    feats = load_features(asset_ids, data, splits) if features is None else features.sort_values(["asset_id", "window_start_utc"]).reset_index(drop=True)
     vib_ids = sorted(feats.asset_id.unique())
     if channel_filter is not None:      # T04: pretend a pump has only some of its sensors (others become missing data)
         feats = feats.copy()

@@ -1,0 +1,124 @@
+{
+ "asset_id": "PUMP-08",
+ "start": "2025-09-08T00:00:00Z",
+ "end": "2025-09-12T00:00:00Z",
+ "check_min": 180,
+ "alerts": [
+  {
+   "asset_id": "PUMP-08",
+   "alert_time_utc": "2025-09-10T18:17:00Z",
+   "event_class": "MACHINE",
+   "fault_type": "SUCTION_STRAINER_CLOGGING",
+   "probability": 1.0,
+   "certainty": "High",
+   "top_types": [
+    [
+     "SUCTION_STRAINER_CLOGGING",
+     1.0
+    ]
+   ],
+   "evidence": [
+    {
+     "channel": "suction_pressure_kpa",
+     "z": -8.426920903954802,
+     "text": "suction pressure is low (z = -8.4)"
+    }
+   ],
+   "channel_trust": {},
+   "recommended_action": "Inspect and clean the suction strainer.",
+   "what_if": {
+    "action": "clean_strainer",
+    "value": null,
+    "hypothesis": {
+     "clog": 2.0
+    },
+    "accepted": true,
+    "reasons": [],
+    "warnings": [],
+    "caveats": [
+     "Reduced-order steady-state model (affinity laws, quadratic system curve); not a validated digital twin.",
+     "Machine condition is the user's hypothesis, not a measured or hidden state.",
+     "Built from public nameplate data and profile defaults; per-asset vibration and thermal baselines are not public, so vibration and temperature predictions are indicative only.",
+     "Costs are illustrative assumptions; replace with site data.",
+     "Sandbox output only: not a set-point, not a work order, not connected to any controller."
+    ],
+    "flow_before_m3h": 310.9797,
+    "flow_after_m3h": 338.0995,
+    "flow_change_pct": 8.7,
+    "risk_before": 0.163,
+    "risk_after": 0.163,
+    "cost_eur": 275.0
+   },
+   "operator_decision": "approved",
+   "z_at_alert": {},
+   "detected_at_replay_utc": "2025-09-10T21:00:00Z"
+  },
+  {
+   "asset_id": "PUMP-08",
+   "alert_time_utc": "2025-09-11T09:54:00Z",
+   "event_class": "MACHINE",
+   "fault_type": "BEARING_WEAR",
+   "probability": 0.8589677670588488,
+   "certainty": "High",
+   "top_types": [
+    [
+     "BEARING_WEAR",
+     0.8589677670588488
+    ],
+    [
+     "SUCTION_STRAINER_CLOGGING",
+     0.14103223294115116
+    ],
+    [
+     "IMPELLER_WEAR",
+     1.6969454163372006e-20
+    ]
+   ],
+   "evidence": [
+    {
+     "channel": "suction_pressure_kpa",
+     "z": -14.388333333333339,
+     "text": "suction pressure is low (z = -14.4)"
+    },
+    {
+     "channel": "vibration_snapshot",
+     "z": 1.030449031961091,
+     "text": "Vibration snapshot at 2025-09-11 09:07 shows no clear change (this argues against bearing wear): RMS 1.03 x start value, crest factor +0.28, kurtosis +0.15"
+    },
+    {
+     "channel": "vibration_envelope",
+     "z": 4.078115856209162,
+     "text": "Envelope spectrum at 2025-09-11 09:07: peak at BPFO (outer race) is 4 x the noise floor (no bearing defect peak; this argues against bearing wear)"
+    }
+   ],
+   "channel_trust": {},
+   "recommended_action": "Inspect the bearing and the lubrication. Plan a bearing replacement.",
+   "what_if": {
+    "action": "replace_bearing",
+    "value": null,
+    "hypothesis": {
+     "bearing_wear": 0.6
+    },
+    "accepted": true,
+    "reasons": [],
+    "warnings": [],
+    "caveats": [
+     "Reduced-order steady-state model (affinity laws, quadratic system curve); not a validated digital twin.",
+     "Machine condition is the user's hypothesis, not a measured or hidden state.",
+     "Built from public nameplate data and profile defaults; per-asset vibration and thermal baselines are not public, so vibration and temperature predictions are indicative only.",
+     "Costs are illustrative assumptions; replace with site data.",
+     "Sandbox output only: not a set-point, not a work order, not connected to any controller."
+    ],
+    "flow_before_m3h": 338.0995,
+    "flow_after_m3h": 338.0995,
+    "flow_change_pct": 0.0,
+    "risk_before": 0.239,
+    "risk_after": 0.169,
+    "cost_eur": 1800.0
+   },
+   "operator_decision": "approved",
+   "z_at_alert": {},
+   "detected_at_replay_utc": "2025-09-11T12:00:00Z"
+  }
+ ]
+}

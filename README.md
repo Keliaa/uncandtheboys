@@ -15,7 +15,7 @@ The deliverables listed in [original-challenge/START_HERE.md](original-challenge
 | 3 | Code and run instructions | This README, plus the README in each experiment directory |
 | 3 | Comparison against the provided baselines | [physics-context-detector/RESULTS.md](physics-context-detector/RESULTS.md#b1-vs-b4), [baseline-reproduction/](baseline-reproduction/README.md) |
 | 3 | Honest limitations | [physics-context-detector/RESULTS.md](physics-context-detector/RESULTS.md#honest-limitations) |
-| 3 | Demo / presentation | [operator-demo/PRESENTER_SCRIPT.md](operator-demo/PRESENTER_SCRIPT.md) |
+| 3 | Demo / presentation | [RETROFIT AI DEMO](https://customer-vitality-swarm.lovable.app/) |
 
 ### Test-pump alerts (B4)
 
